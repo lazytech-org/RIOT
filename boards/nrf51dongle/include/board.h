@@ -7,9 +7,7 @@
  */
 
 /**
- * @defgroup    boards_nrf51dongle nRF51 Dongle
- * @ingroup     boards
- * @brief       Board specific files for the Nordic nRF51 Dongle
+ * @ingroup     boards_nrf51dongle
  * @{
  *
  * @file
@@ -21,25 +19,14 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-#include "cpu.h"
-#include "periph_conf.h"
+#include "board_common.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @brief   Xtimer configuration
- * @{
- */
-#define XTIMER_DEV                  (0)
-#define XTIMER_CHAN                 (0)
-#define XTIMER_WIDTH                (24)
-#define XTIMER_BACKOFF              (40)
-/** @} */
-
-/**
- * @brief   LED pin definitions and handlers
+ * @name    LED pin definitions and handlers
  * @{
  */
 #define LED0_PIN            GPIO_PIN(0, 21)
@@ -63,14 +50,9 @@ extern "C" {
 #define LED2_TOGGLE         (NRF_GPIO->OUT   ^= LED2_MASK)
 /** @} */
 
-/**
- * @brief   Initialize the board, also triggers the CPU initialization
- */
-void board_init(void);
-
 #ifdef __cplusplus
 }
 #endif
 
-#endif /** BOARD_H */
+#endif /* BOARD_H */
 /** @} */

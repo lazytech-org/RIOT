@@ -47,7 +47,7 @@ extern "C" {
  * @note This is a struct in order to make the xtimer API type strict
  */
 typedef struct {
-    uint64_t ticks64;
+    uint64_t ticks64;       /**< Tick count */
 } xtimer_ticks64_t;
 
 /**
@@ -56,7 +56,7 @@ typedef struct {
  * @note This is a struct in order to make the xtimer API type strict
  */
 typedef struct {
-    uint32_t ticks32;
+    uint32_t ticks32;       /**< Tick count */
 } xtimer_ticks32_t;
 
 /**
@@ -68,12 +68,12 @@ typedef void (*xtimer_callback_t)(void*);
  * @brief xtimer timer structure
  */
 typedef struct xtimer {
-    struct xtimer *next;        /**< reference to next timer in timer lists */
-    uint32_t target;            /**< lower 32bit absolute target time */
-    uint32_t long_target;       /**< upper 32bit absolute target time */
+    struct xtimer *next;         /**< reference to next timer in timer lists */
+    uint32_t target;             /**< lower 32bit absolute target time */
+    uint32_t long_target;        /**< upper 32bit absolute target time */
     xtimer_callback_t callback;  /**< callback function to call when timer
                                      expires */
-    void *arg;                  /**< argument to pass to callback function */
+    void *arg;                   /**< argument to pass to callback function */
 } xtimer_t;
 
 /**
@@ -292,6 +292,27 @@ static inline void xtimer_set_wakeup64(xtimer_t *timer, uint64_t offset, kernel_
 static inline void xtimer_set(xtimer_t *timer, uint32_t offset);
 
 /**
+ * @brief Set a timer to execute a callback at some time in the future, 64bit
+ * version
+ *
+ * Expects timer->callback to be set.
+ *
+ * The callback specified in the timer struct will be executed @p offset_usec
+ * microseconds in the future.
+ *
+ * @warning BEWARE! Callbacks from xtimer_set() are being executed in interrupt
+ * context (unless offset < XTIMER_BACKOFF). DON'T USE THIS FUNCTION unless you
+ * know *exactly* what that means.
+ *
+ * @param[in] timer       the timer structure to use.
+ *                        Its xtimer_t::target and xtimer_t::long_target
+ *                        fields need to be initialized with 0 on first use
+ * @param[in] offset_us   time in microseconds from now specifying that timer's
+ *                        callback's execution time
+ */
+static inline void xtimer_set64(xtimer_t *timer, uint64_t offset_us);
+
+/**
  * @brief remove a timer
  *
  * @note this function runs in O(n) with n being the number of active timers
@@ -440,6 +461,17 @@ static inline bool xtimer_less64(xtimer_ticks64_t a, xtimer_ticks64_t b);
 int xtimer_mutex_lock_timeout(mutex_t *mutex, uint64_t us);
 
 /**
+ * @brief    Set timeout thread flag after @p timeout
+ *
+ * This function will set THREAD_FLAG_TIMEOUT on the current thread after @p
+ * timeout usec have passed.
+ *
+ * @param[in]   t       timer struct to use
+ * @param[in]   timeout timeout in usec
+ */
+void xtimer_set_timeout_flag(xtimer_t *t, uint32_t timeout);
+
+/**
  * @brief xtimer backoff value
  *
  * All timers that are less than XTIMER_BACKOFF microseconds in the future will
@@ -509,24 +541,6 @@ int xtimer_mutex_lock_timeout(mutex_t *mutex, uint64_t us);
 #define XTIMER_PERIODIC_RELATIVE (512)
 #endif
 
-#ifndef XTIMER_SHIFT
-/**
- * @brief   xtimer prescaler value
- *
- * If the underlying hardware timer is running at a power of two multiple of
- * 15625, XTIMER_SHIFT can be used to adjust the difference.
- *
- * For a 1 MHz hardware timer, set XTIMER_SHIFT to 0.
- *
- * For a 4 MHz hardware timer, set XTIMER_SHIFT to 2.
- * For a 16 MHz hardware timer, set XTIMER_SHIFT to 4.
- * For a 250 kHz hardware timer, set XTIMER_SHIFT to 2.
- *
- * The direction of the shift is handled by the macros in tick_conversion.h
- */
-#define XTIMER_SHIFT (0)
-#endif
-
 /*
  * Default xtimer configuration
  */
@@ -573,11 +587,57 @@ int xtimer_mutex_lock_timeout(mutex_t *mutex, uint64_t us);
 #define XTIMER_MASK (0)
 #endif
 
+/**
+ * @brief  Base frequency of xtimer is 1 MHz
+ */
+#define XTIMER_HZ_BASE (1000000ul)
+
 #ifndef XTIMER_HZ
 /**
  * @brief  Frequency of the underlying hardware timer
  */
-#define XTIMER_HZ 1000000ul
+#define XTIMER_HZ XTIMER_HZ_BASE
+#endif
+
+#ifndef XTIMER_SHIFT
+#if (XTIMER_HZ == 32768ul)
+/* No shift necessary, the conversion is not a power of two and is handled by
+ * functions in tick_conversion.h */
+#define XTIMER_SHIFT (0)
+#elif (XTIMER_HZ == XTIMER_HZ_BASE)
+/**
+ * @brief   xtimer prescaler value
+ *
+ * If the underlying hardware timer is running at a power of two multiple of
+ * 15625, XTIMER_SHIFT can be used to adjust the difference.
+ *
+ * For a 1 MHz hardware timer, set XTIMER_SHIFT to 0.
+ * For a 2 MHz or 500 kHz, set XTIMER_SHIFT to 1.
+ * For a 4 MHz or 250 kHz, set XTIMER_SHIFT to 2.
+ * For a 8 MHz or 125 kHz, set XTIMER_SHIFT to 3.
+ * For a 16 MHz or 62.5 kHz, set XTIMER_SHIFT to 4.
+ * and for 32 MHz, set XTIMER_SHIFT to 5.
+ *
+ * The direction of the shift is handled by the macros in tick_conversion.h
+ */
+#define XTIMER_SHIFT (0)
+#elif (XTIMER_HZ >> 1 == XTIMER_HZ_BASE) || (XTIMER_HZ << 1 == XTIMER_HZ_BASE)
+#define XTIMER_SHIFT (1)
+#elif (XTIMER_HZ >> 2 == XTIMER_HZ_BASE) || (XTIMER_HZ << 2 == XTIMER_HZ_BASE)
+#define XTIMER_SHIFT (2)
+#elif (XTIMER_HZ >> 3 == XTIMER_HZ_BASE) || (XTIMER_HZ << 3 == XTIMER_HZ_BASE)
+#define XTIMER_SHIFT (3)
+#elif (XTIMER_HZ >> 4 == XTIMER_HZ_BASE) || (XTIMER_HZ << 4 == XTIMER_HZ_BASE)
+#define XTIMER_SHIFT (4)
+#elif (XTIMER_HZ >> 5 == XTIMER_HZ_BASE) || (XTIMER_HZ << 5 == XTIMER_HZ_BASE)
+#define XTIMER_SHIFT (5)
+#elif (XTIMER_HZ >> 6 == XTIMER_HZ_BASE) || (XTIMER_HZ << 6 == XTIMER_HZ_BASE)
+#define XTIMER_SHIFT (6)
+#else
+#error "XTIMER_SHIFT cannot be derived for given XTIMER_HZ, verify settings!"
+#endif
+#else
+#error "XTIMER_SHIFT is set relative to XTIMER_HZ, no manual define required!"
 #endif
 
 #include "xtimer/tick_conversion.h"

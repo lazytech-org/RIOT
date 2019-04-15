@@ -28,7 +28,7 @@
 #include "periph/cpuid.h"
 #include "net/gnrc.h"
 #include "net/ieee802154.h"
-#include "uuid.h"
+#include "luid.h"
 
 #include "kw2xrf.h"
 #include "kw2xrf_spi.h"
@@ -45,22 +45,22 @@ static void kw2xrf_set_address(kw2xrf_t *dev)
     DEBUG("[kw2xrf] set MAC addresses\n");
     eui64_t addr_long;
     /* get an 8-byte unique ID to use as hardware address */
-    uuid_get(addr_long.uint8, IEEE802154_LONG_ADDRESS_LEN);
+    luid_get(addr_long.uint8, IEEE802154_LONG_ADDRESS_LEN);
     /* make sure we mark the address as non-multicast and not globally unique */
     addr_long.uint8[0] &= ~(0x01);
     addr_long.uint8[0] |=  (0x02);
     /* set short and long address */
-    kw2xrf_set_addr_long(dev, NTOHLL(addr_long.uint64.u64));
-    kw2xrf_set_addr_short(dev, NTOHS(addr_long.uint16[0].u16));
+    kw2xrf_set_addr_long(dev, ntohll(addr_long.uint64.u64));
+    kw2xrf_set_addr_short(dev, ntohs(addr_long.uint16[0].u16));
 }
 
 void kw2xrf_setup(kw2xrf_t *dev, const kw2xrf_params_t *params)
 {
-    netdev2_t *netdev = (netdev2_t *)dev;
+    netdev_t *netdev = (netdev_t *)dev;
 
     netdev->driver = &kw2xrf_driver;
     /* initialize device descriptor */
-    memcpy(&dev->params, params, sizeof(kw2xrf_params_t));
+    dev->params = *params;
     dev->idle_state = XCVSEQ_RECEIVE;
     dev->state = 0;
     dev->pending_tx = 0;
@@ -90,23 +90,13 @@ int kw2xrf_init(kw2xrf_t *dev, gpio_cb_t cb)
 
 void kw2xrf_reset_phy(kw2xrf_t *dev)
 {
-    /* reset options and sequence number */
-    dev->netdev.seq = 0;
-    dev->netdev.flags = 0;
-
-    /* set default protocol */
-#ifdef MODULE_GNRC_SIXLOWPAN
-    dev->netdev.proto = GNRC_NETTYPE_SIXLOWPAN;
-#elif MODULE_GNRC
-    dev->netdev.proto = GNRC_NETTYPE_UNDEF;
-#endif
+    netdev_ieee802154_reset(&dev->netdev);
 
     dev->tx_power = KW2XRF_DEFAULT_TX_POWER;
     kw2xrf_set_tx_power(dev, dev->tx_power);
 
     kw2xrf_set_channel(dev, KW2XRF_DEFAULT_CHANNEL);
 
-    kw2xrf_set_pan(dev, KW2XRF_DEFAULT_PANID);
     kw2xrf_set_address(dev);
 
     kw2xrf_set_cca_mode(dev, 1);
@@ -120,13 +110,10 @@ void kw2xrf_reset_phy(kw2xrf_t *dev)
     kw2xrf_set_power_mode(dev, KW2XRF_AUTODOZE);
     kw2xrf_set_sequence(dev, dev->idle_state);
 
-    kw2xrf_set_option(dev, KW2XRF_OPT_TELL_RX_START, true);
-    kw2xrf_set_option(dev, KW2XRF_OPT_TELL_RX_END, true);
-    kw2xrf_set_option(dev, KW2XRF_OPT_TELL_TX_END, true);
     kw2xrf_clear_dreg_bit(dev, MKW2XDM_PHY_CTRL2, MKW2XDM_PHY_CTRL2_SEQMSK);
 
     kw2xrf_enable_irq_b(dev);
 
-    DEBUG("[kw2xrf] init phy and (re)set to channel %d and pan %d.\n",
-          KW2XRF_DEFAULT_CHANNEL, KW2XRF_DEFAULT_PANID);
+    DEBUG("[kw2xrf] init phy and (re)set to channel %d.\n",
+          KW2XRF_DEFAULT_CHANNEL);
 }

@@ -1,19 +1,21 @@
-APPLICATION = emb6
 # overwrite board, do not set native as default
 BOARD ?= samr21-xpro
 include ../Makefile.tests_common
 
-FEATURES_REQUIRED = periph_gpio periph_spi  # for at86rf231
+# MSP-430 doesn't support C11's atomic functionality yet
+BOARD_BLACKLIST := msb-430 msb-430h pic32-clicker pic32-wifire \
+                   telosb wsn430-v1_3b wsn430-v1_4 z1
 
-RIOTBASE ?= $(CURDIR)/../..
-
-BOARD_INSUFFICIENT_MEMORY := msb-430 msb-430h stm32f0discovery telosb weio z1 \
-                             wsn430-v1_3b wsn430-v1_4
+BOARD_INSUFFICIENT_MEMORY := arduino-duemilanove arduino-mega2560 arduino-nano \
+                             arduino-uno msb-430 msb-430h nucleo-l031k6 \
+                             nucleo-f031k6 nucleo-f042k6 nucleo-l053r8 \
+                             stm32f0discovery telosb waspmote-pro wsn430-v1_3b \
+                             wsn430-v1_4 z1
 
 USEPKG += emb6
 
 USEMODULE += emb6_router
-USEMODULE += emb6_conn_udp
+USEMODULE += emb6_sock_udp
 USEMODULE += ipv6_addr
 USEMODULE += shell
 USEMODULE += shell_commands
@@ -36,5 +38,8 @@ DRIVER ?= at86rf231
 
 # include the selected driver
 USEMODULE += $(DRIVER)
+
+CFLAGS += -Wno-unused-parameter -Wno-unused-function -Wno-type-limits
+CFLAGS += -Wno-sign-compare -Wno-missing-field-initializers
 
 include $(RIOTBASE)/Makefile.include

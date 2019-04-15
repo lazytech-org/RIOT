@@ -43,8 +43,8 @@
  *
  * @author  Wojciech Bober <wojciech.bober@nordicsemi.no>
  */
-#ifndef DEV_BLE_H
-#define DEV_BLE_H
+#ifndef BLE_CORE_H
+#define BLE_CORE_H
 
 #include <stdint.h>
 
@@ -70,17 +70,17 @@ void ble_advertising_init(const char *name);
 void ble_advertising_start(void);
 
 /**
- * @brief Return device EUI64 MAC address
+ * @brief Return device MAC address
  *
  * @param addr pointer to a buffer to store the address
  */
-void ble_get_mac(uint8_t addr[8]);
+void ble_get_mac(uint8_t addr[6]);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* DEV_BLE_H */
+#endif /* BLE_CORE_H */
 
 /**
  * @}

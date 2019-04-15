@@ -26,34 +26,43 @@ extern "C" {
 #endif
 
 /**
- * @name Clock system configuration
+ * @name    Clock settings
+ *
+ * @note    This is auto-generated from
+ *          `cpu/stm32_common/dist/clk_conf/clk_conf.c`
  * @{
  */
-#define CLOCK_HSE           (8000000U)          /* external oscillator */
-#define CLOCK_CORECLOCK     (72000000U)         /* desired core clock frequency */
-
-/* the actual PLL values are automatically generated */
-#define CLOCK_PLL_MUL       (CLOCK_CORECLOCK / CLOCK_HSE)
+/* give the target core clock (HCLK) frequency [in Hz],
+ * maximum: 72MHz */
+#define CLOCK_CORECLOCK     (72000000U)
+/* 0: no external high speed crystal available
+ * else: actual crystal frequency [in Hz] */
+#define CLOCK_HSE           (8000000U)
+/* 0: no external low speed crystal available,
+ * 1: external crystal available (always 32.768kHz) */
+#define CLOCK_LSE           (0)
+/* peripheral clock setup */
 #define CLOCK_AHB_DIV       RCC_CFGR_HPRE_DIV1
-#define CLOCK_APB2_DIV      RCC_CFGR_PPRE2_DIV1
-#define CLOCK_APB1_DIV      RCC_CFGR_PPRE1_DIV2
-#define CLOCK_FLASH_LATENCY FLASH_ACR_LATENCY_2
-
-/* bus clocks for simplified peripheral initialization, UPDATE MANUALLY! */
 #define CLOCK_AHB           (CLOCK_CORECLOCK / 1)
-#define CLOCK_APB2          (CLOCK_CORECLOCK / 1)
+#define CLOCK_APB1_DIV      RCC_CFGR_PPRE1_DIV2     /* max 36MHz */
 #define CLOCK_APB1          (CLOCK_CORECLOCK / 2)
+#define CLOCK_APB2_DIV      RCC_CFGR_PPRE2_DIV1     /* max 72MHz */
+#define CLOCK_APB2          (CLOCK_CORECLOCK / 1)
+
+/* PLL factors */
+#define CLOCK_PLL_PREDIV     (1)
+#define CLOCK_PLL_MUL        (9)
 /** @} */
 
 /**
  * @name   DAC configuration
  * @{
  */
-#define DAC_CONFIG {                \
-    { GPIO_PIN(PORT_A, 4), 0, 0 },  \
-}
+static const dac_conf_t dac_config[] = {
+    { .pin = GPIO_PIN(PORT_A,  4), .chan = 0 }
+};
 
-#define DAC_NUMOF           (1)
+#define DAC_NUMOF           (sizeof(dac_config) / sizeof(dac_config[0]))
 /** @} */
 
 /**
@@ -120,7 +129,7 @@ static const uart_conf_t uart_config[] = {
 /** @} */
 
 /**
- * @brief   PWM configuration
+ * @name    PWM configuration
  * @{
  */
 static const pwm_conf_t pwm_config[] = {
@@ -200,47 +209,37 @@ static const spi_conf_t spi_config[] = {
  * @name I2C configuration
  * @{
  */
-#define I2C_NUMOF           (2U)
-#define I2C_0_EN            1
-#define I2C_1_EN            1
-#define I2C_IRQ_PRIO        1
-#define I2C_APBCLK          (36000000U)
+static const i2c_conf_t i2c_config[] = {
+    {
+        .dev            = I2C1,
+        .speed          = I2C_SPEED_NORMAL,
+        .scl_pin        = GPIO_PIN(PORT_B, 6),
+        .sda_pin        = GPIO_PIN(PORT_B, 7),
+        .scl_af         = GPIO_AF4,
+        .sda_af         = GPIO_AF4,
+        .bus            = APB1,
+        .rcc_mask       = RCC_APB1ENR_I2C1EN,
+        .rcc_sw_mask    = RCC_CFGR3_I2C1SW,
+        .irqn           = I2C1_ER_IRQn
+    },
+    {
+        .dev            = I2C2,
+        .speed          = I2C_SPEED_NORMAL,
+        .scl_pin        = GPIO_PIN(PORT_F, 1),
+        .sda_pin        = GPIO_PIN(PORT_F, 0),
+        .scl_af         = GPIO_AF4,
+        .sda_af         = GPIO_AF4,
+        .bus            = APB1,
+        .rcc_mask       = RCC_APB1ENR_I2C2EN,
+        .rcc_sw_mask    = RCC_CFGR3_I2C2SW,
+        .irqn           = I2C2_ER_IRQn
+    }
+};
 
-/* I2C 0 device configuration */
-#define I2C_0_DEV           I2C1
-#define I2C_0_CLKEN()       (periph_clk_en(APB1, RCC_APB1ENR_I2C1EN))
-#define I2C_0_CLKDIS()      (periph_clk_dis(APB1, RCC_APB1ENR_I2C1EN))
-#define I2C_0_EVT_IRQ       I2C1_EV_IRQn
-#define I2C_0_EVT_ISR       isr_i2c1_ev
-#define I2C_0_ERR_IRQ       I2C1_ER_IRQn
-#define I2C_0_ERR_ISR       isr_i2c1_er
-/* I2C 0 pin configuration */
-#define I2C_0_SCL_PORT      GPIOB
-#define I2C_0_SCL_PIN       6
-#define I2C_0_SCL_AF        4
-#define I2C_0_SCL_CLKEN()   (periph_clk_en(AHB, RCC_AHBENR_GPIOBEN))
-#define I2C_0_SDA_PORT      GPIOB
-#define I2C_0_SDA_PIN       7
-#define I2C_0_SDA_AF        4
-#define I2C_0_SDA_CLKEN()   (periph_clk_en(AHB, RCC_AHBENR_GPIOBEN))
+#define I2C_0_ISR           isr_i2c1_er
+#define I2C_1_ISR           isr_i2c2_er
 
-/* I2C 1 device configuration */
-#define I2C_1_DEV           I2C2
-#define I2C_1_CLKEN()       (periph_clk_en(APB1, RCC_APB1ENR_I2C2EN))
-#define I2C_1_CLKDIS()      (periph_clk_dis(APB1, RCC_APB1ENR_I2C2EN))
-#define I2C_1_EVT_IRQ       I2C2_EV_IRQn
-#define I2C_1_EVT_ISR       isr_i2c2_ev
-#define I2C_1_ERR_IRQ       I2C2_ER_IRQn
-#define I2C_1_ERR_ISR       isr_i2c2_er
-/* I2C 1 pin configuration */
-#define I2C_1_SCL_PORT      GPIOF
-#define I2C_1_SCL_PIN       1
-#define I2C_1_SCL_AF        4
-#define I2C_1_SCL_CLKEN()   (periph_clk_en(AHB, RCC_AHBENR_GPIOFEN))
-#define I2C_1_SDA_PORT      GPIOF
-#define I2C_1_SDA_PIN       0
-#define I2C_1_SDA_AF        4
-#define I2C_1_SDA_CLKEN()   (periph_clk_en(AHB, RCC_AHBENR_GPIOFEN))
+#define I2C_NUMOF           (sizeof(i2c_config) / sizeof(i2c_config[0]))
 /** @} */
 
 #ifdef __cplusplus

@@ -8,7 +8,7 @@
  */
 
 /**
- * @defgroup    driver_srf02 SRF02
+ * @defgroup    drivers_srf02 SRF02 ultrasonic range sensor
  * @ingroup     drivers_sensors
  * @brief       Driver for the SRF02 ultrasonic range sensor
  * @{
@@ -19,6 +19,7 @@
  * @author      Zakaria Kasmi <zkasmi@inf.fu-berlin.de>
  * @author      Peter Kietzmann <peter.kietzmann@haw-hamburg.de>
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ * @author      Kevin Weiss <kevin.weiss@haw-hamburg.de>
  */
 
 #ifndef SRF02_H
@@ -87,8 +88,11 @@ int srf02_init(srf02_t *dev, i2c_t i2c, uint8_t addr);
  *                          the result in inches, centimeters or microseconds.
  *                          Another set of three fake ranging modes do the same
  *                          but without transmitting the burst
+ *
+ * @return  0 On success, otherwise i2c_write error
+ *
  */
-void srf02_trigger(srf02_t *dev, srf02_mode_t mode);
+int srf02_trigger(const srf02_t *dev, srf02_mode_t mode);
 
 /**
  * @brief    Read the results of the last ranging operation
@@ -98,7 +102,7 @@ void srf02_trigger(srf02_t *dev, srf02_mode_t mode);
  * @return  result of the last ranging operation, meaning depends on the mode
  *          parameter given to the srf02_trigger function
  */
-uint16_t srf02_read(srf02_t *dev);
+uint16_t srf02_read(const srf02_t *dev);
 
 /**
  * @brief   Get the distance measured from the SRF02 ultrasonic sensor
@@ -115,15 +119,18 @@ uint16_t srf02_read(srf02_t *dev);
  * @return  the ranging result in inches, centimeters or microseconds
  *
  */
-uint16_t srf02_get_distance(srf02_t *dev, srf02_mode_t mode);
+uint16_t srf02_get_distance(const srf02_t *dev, srf02_mode_t mode);
 
 /**
  * @brief   Program the given device with a new bus address
  *
  * @param[in] dev           device to program
  * @param[in] new_addr      new address to program the given device to
+ *
+ * @return  0 On success, otherwise i2c_write error
+ *
  */
-void srf02_set_addr(srf02_t *dev, uint8_t new_addr);
+int srf02_set_addr(srf02_t *dev, uint8_t new_addr);
 
 #ifdef __cplusplus
 }

@@ -7,8 +7,8 @@
  */
 
 /**
- * @ingroup arch
- * @defgroup    native_cpu  Native
+ * @ingroup cpu
+ * @defgroup    cpu_native  Native
  * @brief       Native CPU specific code
  * @details     The native CPU uses system calls to simulate hardware access.
  * @ingroup     cpu
@@ -17,8 +17,8 @@
  * @author  Ludwig Knüpfer <ludwig.knuepfer@fu-berlin.de>
  */
 
-#ifndef _CPU_H
-#define _CPU_H
+#ifndef CPU_H
+#define CPU_H
 
 #include <stdio.h>
 
@@ -42,4 +42,4 @@ __attribute__((always_inline)) static inline void cpu_print_last_instruction(voi
 #endif
 
 /** @} */
-#endif //_CPU_H
+#endif /* CPU_H */

@@ -8,10 +8,15 @@
  */
 
 /**
- * @ingroup driver_periph_rtc
+ * @ingroup     cpu_cc430
+ * @ingroup     drivers_periph_rtc
+ * @{
+ *
  * @file
  * @brief       CC430 real time clock implementation
  * @author      Oliver Hahm <oliver.hahm@inria.fr>
+ *
+ * @}
  */
 
 #include <string.h>
@@ -55,7 +60,7 @@ int rtc_set_time(struct tm *localt)
     }
 
     /* copy time to be set */
-    memcpy(&time_to_set, localt, sizeof(struct tm));
+    time_to_set = *localt;
     set_time = 1;
     return 0;
 }
@@ -130,6 +135,8 @@ int rtc_get_time(struct tm *localt)
 
 int rtc_set_alarm(struct tm *localt, rtc_alarm_cb_t cb, void *arg)
 {
+    (void)arg;
+
     if (localt != NULL) {
         RTCAMIN = localt->tm_min;
         RTCAMIN |= BIT7;

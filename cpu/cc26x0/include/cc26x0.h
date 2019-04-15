@@ -16,8 +16,8 @@
  * @author          Leon M. George <leon@georgemail.eu>
  */
 
-#ifndef CC26x0_H
-#define CC26x0_H
+#ifndef CC26X0_H
+#define CC26X0_H
 
 #include <stdint.h>
 
@@ -106,12 +106,13 @@ typedef enum IRQn
   * @{
   */
 #define FLASH_BASE                  0x00000000 /**< FLASH base address */
+#define PERIPH_BASE                 0x40000000 /**< Peripheral base address */
 /*@}*/
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CC26x0_H */
+#endif /* CC26X0_H */
 
 /*@}*/

@@ -8,6 +8,7 @@
 
 /**
  * @ingroup     cpu_lpc1768
+ * @ingroup     drivers_periph_timer
  * @{
  *
  * @file
@@ -22,9 +23,6 @@
 #include "cpu.h"
 #include "periph_conf.h"
 #include "periph/timer.h"
-
-/* guard file in case no timers are defined */
-#if TIMER_0_EN
 
 /**
  * @name Timer channel interrupt flags
@@ -61,15 +59,6 @@ int timer_init(tim_t dev, unsigned long freq, timer_cb_t cb, void *arg)
         /* enable timer */
         TIMER_0_DEV->TCR |= 1;
         return 0;
-    }
-    return -1;
-}
-
-int timer_set(tim_t dev, int channel, unsigned int timeout)
-{
-    if (dev == TIMER_0) {
-        unsigned int now = timer_read(dev);
-        return timer_set_absolute(dev, channel, now + timeout);
     }
     return -1;
 }
@@ -156,5 +145,3 @@ void TIMER_0_ISR(void)
     cortexm_isr_end();
 }
 #endif
-
-#endif /* TIMER_0_EN */

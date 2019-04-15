@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Cenk Gündoğan <mail@cgundogan.de>
+ * Copyright (C) 2016 Cenk Gündoğan <cenk.guendogan@haw-hamburg.de>
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -15,11 +15,11 @@
  *
  * Header file, which defines all structs used by P2P-RPL.
  *
- * @author      Cenk Gündoğan <mail@cgundogan.de>
+ * @author      Cenk Gündoğan <cenk.guendogan@haw-hamburg.de>
  */
 
-#ifndef GNRC_RPL_P2P_STRUCTS_H
-#define GNRC_RPL_P2P_STRUCTS_H
+#ifndef NET_GNRC_RPL_P2P_STRUCTS_H
+#define NET_GNRC_RPL_P2P_STRUCTS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -100,7 +100,7 @@ typedef struct {
 }
 #endif
 
-#endif /* GNRC_RPL_P2P_STRUCTS_H */
+#endif /* NET_GNRC_RPL_P2P_STRUCTS_H */
 /**
  * @}
  */

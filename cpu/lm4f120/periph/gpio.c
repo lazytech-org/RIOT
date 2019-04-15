@@ -8,6 +8,7 @@
 
 /**
  * @ingroup     cpu_lm4f120
+ * @ingroup     drivers_periph_gpio
  * @{
  *
  * @file
@@ -28,6 +29,9 @@
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
+
+#define NUM_OF_PORT 6
+#define NUM_OF_PINS 8
 
 /**
  * @brief   Mask out the pin type from the gpio_mode_t value
@@ -73,6 +77,7 @@ static const uint32_t _port_base[] = {
     GPIO_PORTF_BASE,
 };
 
+#ifdef MODULE_PERIPH_GPIO_IRQ
 static const uint32_t _int_assign[] = {
     INT_GPIOA,
     INT_GPIOB,
@@ -82,15 +87,14 @@ static const uint32_t _int_assign[] = {
     INT_GPIOF,
 };
 
-#define NUM_OF_PORT 6
-#define NUM_OF_PINS 8
-
 typedef struct {
     gpio_cb_t cb;       /**< callback called from GPIO interrupt */
     void *arg;          /**< argument passed to the callback */
 } gpio_state_t;
 
 static gpio_state_t gpio_config[NUM_OF_PORT][NUM_OF_PINS];
+#endif /* MODULE_PERIPH_GPIO_IRQ */
+
 
 int gpio_init(gpio_t pin, gpio_mode_t mode)
 {
@@ -98,7 +102,7 @@ int gpio_init(gpio_t pin, gpio_mode_t mode)
     const uint32_t port_addr = _port_base[port_num];
     const uint8_t pin_num = _pin_num(pin);
     const uint32_t sysctl_port_base = _sysctl_port_base[port_num];
-    const unsigned long pin_bit = 1 << pin_num;
+    const unsigned long pin_bit = 1ul << pin_num;
 
     DEBUG("Init GPIO: port %c, %d\n", 'A' + port_num, pin_num);
     DEBUG("Sysctl %" PRIx32 "\n", sysctl_port_base);
@@ -117,21 +121,72 @@ int gpio_init(gpio_t pin, gpio_mode_t mode)
     return 0;
 }
 
+int gpio_read(gpio_t pin)
+{
+    const uint8_t port_num = _port_num(pin);
+    const uint32_t port_addr = _port_base[port_num];
+    const uint8_t pin_num = _pin_num(pin);
+
+    return HWREG(port_addr + ((1<<pin_num) << 2)) != 0;
+}
+
+void gpio_set(gpio_t pin)
+{
+    const uint8_t port_num = _port_num(pin);
+    const uint32_t port_addr = _port_base[port_num];
+    const uint8_t pin_num = _pin_num(pin);
+    DEBUG("Setting bit %d of port %c\n", pin_num, 'A' + port_num);
+    DEBUG("Port addr %" PRIx32 ", vs %x\n", port_addr,  GPIO_PORTF_BASE);
+    ROM_GPIOPinWrite(port_addr, 1<<pin_num, 1<<pin_num);
+}
+
+void gpio_clear(gpio_t pin)
+{
+    const uint8_t port_num = _port_num(pin);
+    const uint32_t port_addr = _port_base[port_num];
+    const uint8_t pin_num = _pin_num(pin);
+
+    HWREG(port_addr + ((1<<pin_num) << 2)) = 0;
+}
+
+void gpio_toggle(gpio_t pin)
+{
+    if (gpio_read(pin)) {
+        gpio_clear(pin);
+    }
+    else {
+        gpio_set(pin);
+    }
+}
+
+void gpio_write(gpio_t pin, int value)
+{
+    if (value) {
+        gpio_set(pin);
+    }
+    else {
+        gpio_clear(pin);
+    }
+}
+
+#ifdef MODULE_PERIPH_GPIO_IRQ
 static void _isr_gpio(uint32_t port_num){
     const uint32_t port_addr = _port_base[port_num];
     uint32_t isr = ROM_GPIOPinIntStatus(port_addr, true);
     uint8_t i;
 
-    ROM_GPIOPinIntClear(port_addr, isr);
-
     for (i=0; i<8; i++, isr>>=1) {
         if ((isr & 0x1) == 0){
             continue;
         }
+
+        ROM_GPIOPinIntClear(port_addr, 1 << i);
+
         if (gpio_config[port_num][i].cb){
             gpio_config[port_num][i].cb(gpio_config[port_num][i].arg);
         }
     }
+    cortexm_isr_end();
 }
 
 void isr_gpio_porta(void){
@@ -220,52 +275,4 @@ void gpio_irq_disable(gpio_t pin)
 
     HWREG(im_reg_addr) &= ~(pin_bit);
 }
-
-
-int gpio_read(gpio_t pin)
-{
-    const uint8_t port_num = _port_num(pin);
-    const uint32_t port_addr = _port_base[port_num];
-    const uint8_t pin_num = _pin_num(pin);
-
-    return HWREG(port_addr + ((1<<pin_num) << 2)) != 0;
-}
-
-void gpio_set(gpio_t pin)
-{
-    const uint8_t port_num = _port_num(pin);
-    const uint32_t port_addr = _port_base[port_num];
-    const uint8_t pin_num = _pin_num(pin);
-    DEBUG("Setting bit %d of port %c\n", pin_num, 'A' + port_num);
-    DEBUG("Port addr %" PRIx32 ", vs %x\n", port_addr,  GPIO_PORTF_BASE);
-    ROM_GPIOPinWrite(port_addr, 1<<pin_num, 1<<pin_num);
-}
-
-void gpio_clear(gpio_t pin)
-{
-    const uint8_t port_num = _port_num(pin);
-    const uint32_t port_addr = _port_base[port_num];
-    const uint8_t pin_num = _pin_num(pin);
-
-    HWREG(port_addr + ((1<<pin_num) << 2)) = 0;
-}
-
-void gpio_toggle(gpio_t pin)
-{
-    if (gpio_read(pin)) {
-        gpio_clear(pin);
-    }
-    else {
-        gpio_set(pin);
-    }
-}
-
-void gpio_write(gpio_t pin, int value)
-{
-    if (value) {
-        gpio_set(pin);
-    }
-    else {
-        gpio_clear(pin);
-    }
-}
+#endif /* MODULE_PERIPH_GPIO_IRQ */

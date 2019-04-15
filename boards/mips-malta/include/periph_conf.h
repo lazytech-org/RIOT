@@ -9,9 +9,7 @@
  */
 
 /**
- * @defgroup    boards_mips-malta MIPS MALTA
- * @ingroup     boards
- * @brief       peripheral configuration for the MIPS Malta FPGA system
+ * @ingroup     boards_mips-malta
  * @{
  *
  * @file
@@ -20,40 +18,24 @@
  * @author      Neil Jones <neil.jones@imgtec.com>
  */
 
-#ifndef _PERIPH_CONF_H_
-#define _PERIPH_CONF_H_
+#ifndef PERIPH_CONF_H
+#define PERIPH_CONF_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @brief   Timer definitions
+ * @name    Timer definitions
  * @{
  */
 #define TIMER_NUMOF         (1)
 #define TIMER_0_CHANNELS    (3)
 /** @} */
 
-/**
- * @brief No UART driver for this board currently
- *        Note this value must be set though (to 0)
- */
-#define UART_NUMOF          (0)
-
-/**
- * @brief Enable DSP context save + restore.
- */
-#define MIPS_DSP            (1)
-
-/**
- * @brief Enable FPU context save + restore.
- */
-#define MIPS_HARD_FLOAT     (1)
-
 #ifdef __cplusplus
 }
 #endif
 
-#endif /*_PERIPH_CONF_H_*/
+#endif /* PERIPH_CONF_H */
 /** @} */

@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     driver_lsm303dlhc
+ * @ingroup     drivers_lsm303dlhc
  * @{
  *
  * @file
@@ -23,13 +23,13 @@
 #include "saul.h"
 #include "lsm303dlhc.h"
 
-static int read_acc(void *dev, phydat_t *res)
+static int read_acc(const void *dev, phydat_t *res)
 {
-    lsm303dlhc_t *d = (lsm303dlhc_t *)dev;
-    lsm303dlhc_read_acc(d, (lsm303dlhc_3d_data_t *)res);
+    const lsm303dlhc_t *d = (const lsm303dlhc_t *)dev;
+    lsm303dlhc_read_acc(d, (lsm303dlhc_3d_data_t *)res->val);
 
     /* normalize result */
-    int fac = (1 << (d->acc_scale >> 4));
+    int fac = (1 << (d->params.acc_scale >> 4));
     for (int i = 0; i < 3; i++) {
         res->val[i] *= fac;
     }
@@ -39,14 +39,15 @@ static int read_acc(void *dev, phydat_t *res)
     return 3;
 }
 
-static int read_mag(void *dev, phydat_t *res)
+static int read_mag(const void *dev, phydat_t *res)
 {
-    lsm303dlhc_t *d = (lsm303dlhc_t *)dev;
-    lsm303dlhc_read_mag(d, (lsm303dlhc_3d_data_t *)res);
+    const lsm303dlhc_t *d = (const lsm303dlhc_t *)dev;
+
+    lsm303dlhc_read_mag(d, (lsm303dlhc_3d_data_t *)res->val);
 
     /* normalize results */
     int gain;
-    switch (d->mag_gain) {
+    switch (d->params.mag_gain) {
         case LSM303DLHC_MAG_GAIN_1100_980_GAUSS: gain = 1100; break;
         case LSM303DLHC_MAG_GAIN_855_760_GAUSS:  gain = 855;  break;
         case LSM303DLHC_MAG_GAIN_670_600_GAUSS:  gain = 670;  break;
@@ -67,19 +68,14 @@ static int read_mag(void *dev, phydat_t *res)
     return 3;
 }
 
-static int write(void *dev, phydat_t *state)
-{
-    return -ENOTSUP;
-}
-
 const saul_driver_t lsm303dlhc_saul_acc_driver = {
     .read = read_acc,
-    .write = write,
+    .write = saul_notsup,
     .type = SAUL_SENSE_ACCEL,
 };
 
 const saul_driver_t lsm303dlhc_saul_mag_driver = {
     .read = read_mag,
-    .write = write,
+    .write = saul_notsup,
     .type = SAUL_SENSE_MAG,
 };

@@ -20,23 +20,11 @@
 #define PERIPH_CONF_H
 
 #include "periph_cpu.h"
+#include "cfg_clock_16_0.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/**
- * @name    Clock configuration
- *
- * @note    The radio will not work with the internal RC oscillator!
- *
- * @{
- */
-#define CLOCK_CORECLOCK     (16000000U)     /* fixed for all NRF51822 */
-#define CLOCK_CRYSTAL       (16U)           /* set to  0: internal RC oscillator
-                                                      16: 16MHz crystal
-                                                      32: 32MHz crystal */
-/** @} */
 
 /**
  * @name Timer configuration
@@ -71,18 +59,13 @@ static const timer_conf_t timer_config[] = {
 /** @} */
 
 /**
- * @name Real time counter configuration
+ * @name    Real time counter configuration
  * @{
  */
 #define RTT_NUMOF           (1U)
-#define RTT_IRQ_PRIO        1
-
-#define RTT_DEV             NRF_RTC1
-#define RTT_IRQ             RTC1_IRQn
-#define RTT_ISR             isr_rtc1
-#define RTT_MAX_VALUE       (0xffffff)
-#define RTT_FREQUENCY       (10)            /* in Hz */
-#define RTT_PRESCALER       (3275U)         /* run with 10 Hz */
+#define RTT_DEV             (1)             /* NRF_RTC1 */
+#define RTT_MAX_VALUE       (0x00ffffff)
+#define RTT_FREQUENCY       (1024)
 /** @} */
 
 /**
@@ -105,30 +88,12 @@ static const i2c_conf_t i2c_config[] = {
         .dev     = NRF_TWI0,
         .pin_scl = 0,
         .pin_sda = 30,
-        .ppi     = 0
+        .ppi     = 0,
+        .speed   = I2C_SPEED_NORMAL,
     }
 };
 
 #define I2C_NUMOF           (sizeof(i2c_config) / sizeof(i2c_config[0]))
-/** @} */
-
-/**
- * @name   ADC configuration
- *
- * The configuration consists simply of a list of channels that should be used
- * @{
- */
-#define ADC_NUMOF          (0)
-/** @} */
-
-/**
- * @brief   Radio device configuration
- *
- * The radio is not guarded by a NUMOF define, as the radio is selected by its
- * own module in the build system.
- * @{
- */
-#define RADIO_IRQ_PRIO      1
 /** @} */
 
 #ifdef __cplusplus

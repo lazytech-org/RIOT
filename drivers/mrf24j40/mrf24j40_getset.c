@@ -20,6 +20,7 @@
  * @}
  */
 
+#include "byteorder.h"
 #include "mrf24j40.h"
 #include "mrf24j40_internal.h"
 #include "mrf24j40_registers.h"
@@ -74,38 +75,38 @@ static const uint8_t dbm_to_tx_pow[] = { 0x00, 0x10, 0x18, 0x20, 0x28, 0x30, 0x3
                                          0xc0, 0xd0, 0xd8, 0xe0, 0xe8, 0xf0, 0xf8 };
 
 /* take a look onto datasheet table 3-8 */
-static const int8_t dBm_value[] = {  95, 89, 88, 88, 87, 87, 87, 87, \
-                                     86, 86, 86, 86, 85, 85, 85, 85, \
-                                     84, 84, 84, 84, 84, 84, 83, 83, \
-                                     83, 83, 82, 82, 82, 82, 81, 81, \
-                                     81, 81, 81, 80, 80, 80, 80, 80, \
-                                     80, 79, 79, 79, 79, 79, 78, 78, \
-                                     78, 78, 78, 77, 77, 77, 77, 77, \
-                                     76, 76, 76, 76, 76, 75, 75, 75, \
-                                     75, 75, 75, 74, 74, 74, 74, 73, \
-                                     73, 73, 73, 73, 72, 72, 72, 72, \
-                                     72, 71, 71, 71, 71, 71, 70, 70, \
-                                     70, 70, 70, 70, 70, 69, 69, 69, \
-                                     69, 69, 68, 68, 68, 68, 68, 68, \
-                                     68, 67, 67, 67, 67, 66, 66, 66, \
-                                     66, 66, 66, 65, 65, 65, 65, 65, \
-                                     64, 64, 64, 64, 63, 63, 63, 63, \
-                                     62, 62, 62, 62, 61, 61, 61, 61, \
-                                     60, 60, 60, 60, 60, 59, 59, 59, \
-                                     59, 59, 58, 58, 58, 58, 58, 57, \
-                                     57, 57, 57, 57, 57, 56, 56, 56, \
-                                     56, 56, 56, 56, 55, 55, 55, 55, \
-                                     54, 54, 54, 54, 54, 54, 53, 53, \
-                                     53, 53, 53, 53, 53, 52, 52, 52, \
-                                     52, 52, 52, 51, 51, 51, 51, 51, \
-                                     50, 50, 50, 50, 50, 49, 49, 49, \
-                                     49, 49, 48, 48, 48, 48, 47, 47, \
-                                     47, 47, 47, 46, 46, 46, 46, 45, \
-                                     45, 45, 45, 44, 44, 44, 44, 44, \
-                                     43, 43, 43, 42, 42, 42, 42, 41, \
-                                     41, 41, 41, 41, 41, 40, 40, 40, \
-                                     40, 40, 39, 39, 39, 39, 39, 38, \
-                                     38, 38, 38, 37, 37, 37, 36, 30 };
+static const int8_t dBm_value[] = { -90, -89, -88, -88, -87, -87, -87, -87, \
+                                    -86, -86, -86, -86, -85, -85, -85, -85, \
+                                    -84, -84, -84, -84, -84, -84, -83, -83, \
+                                    -83, -83, -82, -82, -82, -82, -81, -81, \
+                                    -81, -81, -81, -80, -80, -80, -80, -80, \
+                                    -80, -79, -79, -79, -79, -79, -78, -78, \
+                                    -78, -78, -78, -77, -77, -77, -77, -77, \
+                                    -76, -76, -76, -76, -76, -75, -75, -75, \
+                                    -75, -75, -75, -74, -74, -74, -74, -73, \
+                                    -73, -73, -73, -73, -72, -72, -72, -72, \
+                                    -72, -71, -71, -71, -71, -71, -70, -70, \
+                                    -70, -70, -70, -70, -70, -69, -69, -69, \
+                                    -69, -69, -68, -68, -68, -68, -68, -68, \
+                                    -68, -67, -67, -67, -67, -66, -66, -66, \
+                                    -66, -66, -66, -65, -65, -65, -65, -65, \
+                                    -64, -64, -64, -64, -63, -63, -63, -63, \
+                                    -62, -62, -62, -62, -61, -61, -61, -61, \
+                                    -60, -60, -60, -60, -60, -59, -59, -59, \
+                                    -59, -59, -58, -58, -58, -58, -58, -57, \
+                                    -57, -57, -57, -57, -57, -56, -56, -56, \
+                                    -56, -56, -56, -56, -55, -55, -55, -55, \
+                                    -54, -54, -54, -54, -54, -54, -53, -53, \
+                                    -53, -53, -53, -53, -53, -52, -52, -52, \
+                                    -52, -52, -52, -51, -51, -51, -51, -51, \
+                                    -50, -50, -50, -50, -50, -49, -49, -49, \
+                                    -49, -49, -48, -48, -48, -48, -47, -47, \
+                                    -47, -47, -47, -46, -46, -46, -46, -45, \
+                                    -45, -45, -45, -44, -44, -44, -44, -44, \
+                                    -43, -43, -43, -42, -42, -42, -42, -41, \
+                                    -41, -41, -41, -41, -41, -40, -40, -40, \
+                                    -40, -40, -39, -39, -39, -39, -39, -38, \
+                                    -38, -38, -38, -37, -37, -37, -36, -35 };
 
 /* take a look onto datasheet table 3-8 */
 static const uint8_t RSSI_value[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, \
@@ -122,42 +123,48 @@ static const uint8_t RSSI_value[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
 
 uint16_t mrf24j40_get_addr_short(mrf24j40_t *dev)
 {
-    return (dev->netdev.short_addr[0] << 8) | dev->netdev.short_addr[1];
+    network_uint16_t naddr;
+    naddr.u8[1] = mrf24j40_reg_read_short(dev, MRF24J40_REG_SADRL);
+    naddr.u8[0] = mrf24j40_reg_read_short(dev, MRF24J40_REG_SADRH);
+
+    return naddr.u16;
 }
 
 void mrf24j40_set_addr_short(mrf24j40_t *dev, uint16_t addr)
 {
+    network_uint16_t naddr;
+    naddr.u16 = addr;
+
 #ifdef MODULE_SIXLOWPAN
     /* https://tools.ietf.org/html/rfc4944#section-12 requires the first bit to
      * 0 for unicast addresses */
-    dev->netdev.short_addr[0] &= 0x7F;
+    naddr.u8[0] &= 0x7F;
 #endif
-    dev->netdev.short_addr[0] = (uint8_t)(addr);
-    dev->netdev.short_addr[1] = (uint8_t)(addr >> 8);
+
     mrf24j40_reg_write_short(dev, MRF24J40_REG_SADRL,
-                             dev->netdev.short_addr[1]);
+                             naddr.u8[1]);
     mrf24j40_reg_write_short(dev, MRF24J40_REG_SADRH,
-                             dev->netdev.short_addr[0]);
+                             naddr.u8[0]);
 }
 
 uint64_t mrf24j40_get_addr_long(mrf24j40_t *dev)
 {
-    uint64_t addr;
-
-    uint8_t *ap = (uint8_t *)(&addr);
+    network_uint64_t naddr;
 
     for (int i = 0; i < 8; i++) {
-        ap[i] = dev->netdev.long_addr[i];
+        naddr.u8[7 - i] = mrf24j40_reg_read_short(dev, (MRF24J40_REG_EADR0 + i));
     }
-    return addr;
+    return naddr.u64;
 }
 
 void mrf24j40_set_addr_long(mrf24j40_t *dev, uint64_t addr)
 {
+    network_uint64_t naddr;
+    naddr.u64 = addr;
+
     for (int i = 0; i < 8; i++) {
-        dev->netdev.long_addr[i] = (uint8_t)(addr >> (i * 8));
         mrf24j40_reg_write_short(dev, (MRF24J40_REG_EADR0 + i),
-                                 (addr >> ((7 - i) * 8)));
+                                 (naddr.u8[7 - i]));
     }
 }
 
@@ -236,7 +243,7 @@ void mrf24j40_set_chan(mrf24j40_t *dev, uint8_t channel)
 
     mrf24j40_reg_write_long(dev, MRF24J40_REG_RFCON0, channel_value);
     /*
-     * Note:Perform an RF State Machine Reset (see Section 3.1 “Reset”)
+     * Note: Perform an RF State Machine Reset (see Section 3.1 Reset)
      * after a channel frequency change. Then, delay at least 192 us after
      * the RF State Machine Reset, to allow the RF circuitry to calibrate.
      */
@@ -252,7 +259,6 @@ void mrf24j40_set_pan(mrf24j40_t *dev, uint16_t pan)
 {
     le_uint16_t le_pan = byteorder_btols(byteorder_htons(pan));
 
-    dev->netdev.pan = pan;
     DEBUG("pan0: %u, pan1: %u\n", le_pan.u8[0], le_pan.u8[1]);
     mrf24j40_reg_write_short(dev, MRF24J40_REG_PANIDL, le_pan.u8[0]);
     mrf24j40_reg_write_short(dev, MRF24J40_REG_PANIDH, le_pan.u8[1]);
@@ -351,7 +357,7 @@ void mrf24j40_set_option(mrf24j40_t *dev, uint16_t option, bool state)
                 tmp &= ~MRF24J40_RXMCR_ERRPKT;
                 mrf24j40_reg_write_short(dev, MRF24J40_REG_RXMCR, tmp);
                 break;
-            case NETDEV2_IEEE802154_ACK_REQ:
+            case NETDEV_IEEE802154_ACK_REQ:
                 DEBUG("[mrf24j40] opt: enabling auto ACKs\n");
                 tmp = mrf24j40_reg_read_short(dev, MRF24J40_REG_RXMCR);
                 tmp &= ~MRF24J40_RXMCR_NOACKRSP;
@@ -373,7 +379,7 @@ void mrf24j40_set_option(mrf24j40_t *dev, uint16_t option, bool state)
                 tmp |= MRF24J40_TXMCR_NOCSMA;
                 /* MACMINBE<1:0>: The minimum value of the backoff exponent
                  * in the CSMA-CA algorithm. Note that if this value is set
-                 * to ‘0’, collision avoidance is disabled. */
+                 * to 0, collision avoidance is disabled. */
                 mrf24j40_reg_write_short(dev, MRF24J40_REG_TXMCR, tmp);
                 break;
             case MRF24J40_OPT_PROMISCUOUS:
@@ -383,12 +389,12 @@ void mrf24j40_set_option(mrf24j40_t *dev, uint16_t option, bool state)
                 tmp &= ~MRF24J40_RXMCR_PROMI;
                 tmp &= ~MRF24J40_RXMCR_ERRPKT;
                 /* re-enable AUTOACK only if the option is set */
-                if (dev->netdev.flags & NETDEV2_IEEE802154_ACK_REQ) {
+                if (dev->netdev.flags & NETDEV_IEEE802154_ACK_REQ) {
                     tmp &= ~(MRF24J40_RXMCR_NOACKRSP);
                     mrf24j40_reg_write_short(dev, MRF24J40_REG_RXMCR, tmp);
                 }
                 break;
-            case NETDEV2_IEEE802154_ACK_REQ:
+            case NETDEV_IEEE802154_ACK_REQ:
                 DEBUG("[mrf24j40] opt: disabling auto ACKs\n");
                 tmp = mrf24j40_reg_read_short(dev, MRF24J40_REG_RXMCR);
                 tmp |= MRF24J40_RXMCR_NOACKRSP;
@@ -487,4 +493,9 @@ void mrf24j40_software_reset(mrf24j40_t *dev)
     do {
         softrst = mrf24j40_reg_read_short(dev, MRF24J40_REG_SOFTRST);
     } while (softrst != 0);        /* wait until soft-reset has finished */
+}
+
+int8_t mrf24j40_dbm_from_reg(uint8_t value)
+{
+    return dBm_value[value];
 }

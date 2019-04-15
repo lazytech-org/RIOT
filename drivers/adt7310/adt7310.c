@@ -151,7 +151,7 @@ int adt7310_init(adt7310_t *dev, spi_t spi, spi_clk_t clk, gpio_t cs)
         if (status != 0) {
             printf("Error reading address 0x%02x", i);
         }
-        dbg_reg = HTONS(dbg_reg);
+        dbg_reg = htons(dbg_reg);
         printf("%02x: %04" PRIx16 "\n", i, dbg_reg);
     }
 #endif
@@ -185,7 +185,7 @@ int adt7310_set_config(adt7310_t *dev, uint8_t config)
     return adt7310_write_reg(dev, ADT7310_REG_CONFIG, ADT7310_REG_SIZE_CONFIG, &config);
 }
 
-int16_t adt7310_read_raw(adt7310_t *dev)
+int16_t adt7310_read_raw(const adt7310_t *dev)
 {
     int status;
     int16_t raw;
@@ -197,11 +197,11 @@ int16_t adt7310_read_raw(adt7310_t *dev)
         return INT16_MIN;
     }
     /* The temperature value is sent big endian (network byte order) */
-    raw = (int16_t)NTOHS((uint16_t)raw);
+    raw = (int16_t)ntohs((uint16_t)raw);
     return raw;
 }
 
-int32_t adt7310_read(adt7310_t *dev)
+int32_t adt7310_read(const adt7310_t *dev)
 {
     int16_t raw = adt7310_read_raw(dev);
     if (raw == INT16_MIN) {
@@ -214,10 +214,12 @@ int32_t adt7310_read(adt7310_t *dev)
     return ((((int32_t)raw) * 1000) >> ADT7310_VALUE_FRAC_BITS);
 }
 
-float adt7310_read_float(adt7310_t *dev)
+float adt7310_read_float(const adt7310_t *dev)
 {
     int16_t raw = adt7310_read_raw(dev);
     if (raw == INT16_MIN) {
+        /* cppcheck-suppress duplicateExpression
+         * (reason: we want to create a NaN here) */
         return (0.0f / 0.0f); /* return NaN */
     }
     if (!dev->high_res) {

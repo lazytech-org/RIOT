@@ -38,8 +38,31 @@ extern "C" {
 enum {
     PORT_B = 1,       /**< port B */
     PORT_C = 2,       /**< port C */
-    PORT_D = 3       /**< port D */
+    PORT_D = 3        /**< port D */
 };
+
+/**
+ * @brief   Available external interrupt pins on the ATmega328p family
+ *
+ * In order of their interrupt number.
+ */
+#define CPU_ATMEGA_EXT_INTS    { GPIO_PIN(PORT_D, 2), \
+                                 GPIO_PIN(PORT_D, 3) }
+
+/**
+ * @name   Defines for the I2C interface
+ * @{
+ */
+#define I2C_PORT_REG            PORTC
+#define I2C_PIN_MASK            (1 << PORTC4) | (1 << PORTC5)
+/** @} */
+
+/**
+ * @name    EEPROM configuration
+ * @{
+ */
+#define EEPROM_SIZE                (1024U)  /* 1kB */
+/** @} */
 
 #ifdef __cplusplus
 }

@@ -7,15 +7,14 @@
  */
 
 /**
- * @defgroup    boards_stm32f0discovery STM32F0Discovery
- * @ingroup     boards
- * @brief       Support for the STM32F0Discovery board
+ * @ingroup     boards_stm32f0discovery
  * @{
  *
  * @file
  * @brief       Board specific definitions for the STM32F0Discovery evaluation board.
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ * @author      Sebastian Meiling <s@mlng.net>
  */
 
 #ifndef BOARD_H
@@ -48,9 +47,12 @@ extern "C" {
 /** @} */
 
 /**
- * @brief User button
+ * @name User button
+ * @{
  */
-#define BTN_B1_PIN          GPIO_PIN(PORT_A, 0)
+#define BTN0_PIN            GPIO_PIN(PORT_A, 0)
+#define BTN0_MODE           GPIO_IN
+/** @} */
 
 /**
  * @brief Initialize board specific hardware, including clock, LEDs and std-IO

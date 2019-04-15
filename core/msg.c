@@ -27,14 +27,14 @@
 #include "msg.h"
 #include "list.h"
 #include "thread.h"
+#if MODULE_CORE_THREAD_FLAGS
+#include "thread_flags.h"
+#endif
 #include "irq.h"
 #include "cib.h"
 
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
-#include "thread.h"
-
-#ifdef MODULE_CORE_MSG
 
 static int _msg_receive(msg_t *m, int block);
 static int _msg_send(msg_t *m, kernel_pid_t target_pid, bool block, unsigned state);
@@ -50,6 +50,10 @@ static int queue_msg(thread_t *target, const msg_t *m)
     DEBUG("queue_msg(): queuing message\n");
     msg_t *dest = &target->msg_array[n];
     *dest = *m;
+#if MODULE_CORE_THREAD_FLAGS
+    target->flags |= THREAD_FLAG_MSG_WAITING;
+    thread_flags_wake(target);
+#endif
     return 1;
 }
 
@@ -139,6 +143,11 @@ static int _msg_send(msg_t *m, kernel_pid_t target_pid, bool block, unsigned sta
         sched_set_status((thread_t*) me, newstatus);
 
         thread_add_to_list(&(target->msg_waiters), me);
+
+#if MODULE_CORE_THREAD_FLAGS
+        target->flags |= THREAD_FLAG_MSG_WAITING;
+        thread_flags_wake(target);
+#endif
 
         irq_restore(state);
         thread_yield_higher();
@@ -287,7 +296,7 @@ static int _msg_receive(msg_t *m, int block)
 
     int queue_index = -1;
 
-    if (me->msg_array) {
+    if (thread_has_msg_queue(me)) {
         queue_index = cib_get(&(me->msg_queue));
     }
 
@@ -321,6 +330,7 @@ static int _msg_receive(msg_t *m, int block)
             thread_yield_higher();
 
             /* sender copied message */
+            assert(sched_active_thread->status != STATUS_RECEIVE_BLOCKED);
         }
         else {
             irq_restore(state);
@@ -372,7 +382,7 @@ int msg_avail(void)
 
     int queue_index = -1;
 
-    if (me->msg_array) {
+    if (thread_has_msg_queue(me)) {
         queue_index = cib_avail(&(me->msg_queue));
     }
 
@@ -397,7 +407,7 @@ void msg_queue_print(void)
 
     printf("Message queue of thread %" PRIkernel_pid "\n", thread->pid);
     printf("    size: %u (avail: %d)\n", msg_queue->mask + 1,
-           cib_avail((cib_t *)msg_queue));
+           cib_avail(msg_queue));
 
     for (; i != (msg_queue->write_count & msg_queue->mask);
          i = (i + 1) & msg_queue->mask) {
@@ -409,5 +419,3 @@ void msg_queue_print(void)
 
     irq_restore(state);
 }
-
-#endif /* MODULE_CORE_MSG */

@@ -26,7 +26,6 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-#ifdef MODULE_CORE_THREAD_FLAGS
 static thread_flags_t _thread_flags_clear_atomic(thread_t *thread, thread_flags_t mask)
 {
     unsigned state = irq_disable();
@@ -101,7 +100,7 @@ thread_flags_t thread_flags_wait_all(thread_flags_t mask)
 
 inline int __attribute__((always_inline)) thread_flags_wake(thread_t *thread)
 {
-    unsigned wakeup = 0;
+    unsigned wakeup;
     thread_flags_t mask = (uint16_t)(unsigned)thread->wait_data;
     switch(thread->status) {
         case STATUS_FLAG_BLOCKED_ANY:
@@ -110,11 +109,15 @@ inline int __attribute__((always_inline)) thread_flags_wake(thread_t *thread)
         case STATUS_FLAG_BLOCKED_ALL:
             wakeup = ((thread->flags & mask) == mask);
             break;
+        default:
+            wakeup = 0;
+            break;
     }
 
     if (wakeup) {
-        DEBUG("_thread_flags_wake(): wakeing up pid %"PRIkernel_pid"\n", thread->pid);
-        sched_set_status(thread, STATUS_RUNNING);
+        DEBUG("_thread_flags_wake(): waking up pid %"PRIkernel_pid"\n", thread->pid);
+        sched_set_status(thread, STATUS_PENDING);
+        sched_context_switch_request = 1;
     }
 
     return wakeup;
@@ -133,4 +136,3 @@ void thread_flags_set(thread_t *thread, thread_flags_t mask)
         irq_restore(state);
     }
 }
-#endif /* MODULE_CORE_THREAD_FLAGS */

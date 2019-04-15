@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     native_cpu
+ * @ingroup     cpu_native
  * @{
  *
  * @file
@@ -37,5 +37,5 @@ void tty_uart_setup(uart_t uart, const char *name);
 }
 #endif
 
-#endif
+#endif /* TTY_UART_H */
 /** @} */

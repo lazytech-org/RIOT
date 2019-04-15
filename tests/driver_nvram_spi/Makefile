@@ -1,7 +1,6 @@
-APPLICATION = driver_nvram_spi
 include ../Makefile.tests_common
 
-FEATURES_REQUIRED = periph_spi periph_gpio
+BOARD_INSUFFICIENT_MEMORY := arduino-duemilanove arduino-nano arduino-uno
 
 USEMODULE += nvram_spi
 USEMODULE += xtimer

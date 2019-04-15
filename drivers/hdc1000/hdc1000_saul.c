@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     driver_hdc1000
+ * @ingroup     drivers_hdc1000
  * @{
  *
  * @file
@@ -23,24 +23,26 @@
 #include "saul.h"
 #include "hdc1000.h"
 
-static int read_temp(void *dev, phydat_t *res)
+static int read_temp(const void *dev, phydat_t *res)
 {
-    hdc1000_t *d = (hdc1000_t *)dev;
-
-    hdc1000_read(d, &(res->val[0]), NULL);
-    memset(&(res->val[1]), 0, 2 * sizeof(int16_t));
+    if (hdc1000_read_cached((const hdc1000_t *)dev, &(res->val[0]), NULL) != HDC1000_OK) {
+        return -ECANCELED;
+    }
+    res->val[1] = 0;
+    res->val[2] = 0;
     res->unit = UNIT_TEMP_C;
     res->scale = -2;
 
     return 1;
 }
 
-static int read_hum(void *dev, phydat_t *res)
+static int read_hum(const void *dev, phydat_t *res)
 {
-    hdc1000_t *d = (hdc1000_t *)dev;
-
-    hdc1000_read(d, NULL, &(res->val[0]));
-    memset(&(res->val[1]), 0, 2 * sizeof(int16_t));
+    if (hdc1000_read_cached((const hdc1000_t *)dev, NULL, &(res->val[0])) != HDC1000_OK) {
+        return -ECANCELED;
+    }
+    res->val[1] = 0;
+    res->val[2] = 0;
     res->unit = UNIT_PERCENT;
     res->scale = -2;
 

@@ -11,7 +11,7 @@
  * @{
  *
  * @file
- * @name       Peripheral MCU configuration for the F4VI1 board
+ * @name        Peripheral MCU configuration for the F4VI1 board
  *
  * @author      Stefan Pfeiffer <pfeiffer@inf.fu-berlin.de>
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
@@ -22,36 +22,14 @@
 #define PERIPH_CONF_H
 
 #include "periph_cpu.h"
+#include "f4/cfg_clock_168_16_0.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @name Clock system configuration
- * @{
- */
-#define CLOCK_HSE           (16000000U)          /* external oscillator */
-#define CLOCK_CORECLOCK     (168000000U)        /* desired core clock frequency */
-
-/* the actual PLL values are automatically generated */
-#define CLOCK_PLL_M         (CLOCK_HSE / 1000000)
-#define CLOCK_PLL_N         ((CLOCK_CORECLOCK / 1000000) * 2)
-#define CLOCK_PLL_P         (2U)
-#define CLOCK_PLL_Q         (CLOCK_PLL_N / 48)
-#define CLOCK_AHB_DIV       RCC_CFGR_HPRE_DIV1
-#define CLOCK_APB2_DIV      RCC_CFGR_PPRE2_DIV2
-#define CLOCK_APB1_DIV      RCC_CFGR_PPRE1_DIV4
-#define CLOCK_FLASH_LATENCY FLASH_ACR_LATENCY_5WS
-
-/* bus clocks for simplified peripheral initialization, UPDATE MANUALLY! */
-#define CLOCK_AHB           (CLOCK_CORECLOCK / 1)
-#define CLOCK_APB2          (CLOCK_CORECLOCK / 2)
-#define CLOCK_APB1          (CLOCK_CORECLOCK / 4)
-/** @} */
-
-/**
- * @name   Timer configuration
+ * @name    Timer configuration
  * @{
  */
 static const timer_conf_t timer_config[] = {
@@ -78,7 +56,7 @@ static const timer_conf_t timer_config[] = {
 /** @} */
 
 /**
- * @name   UART configuration
+ * @name    UART configuration
  * @{
  */
 static const uart_conf_t uart_config[] = {
@@ -90,7 +68,7 @@ static const uart_conf_t uart_config[] = {
         .rx_af      = GPIO_AF8,
         .tx_af      = GPIO_AF8,
         .bus        = APB2,
-        .irqn       = USART6_IRQn
+        .irqn       = USART6_IRQn,
 #ifdef UART_USE_DMA
         .dma_stream = 14,
         .dma_chan   = 5
@@ -102,20 +80,6 @@ static const uart_conf_t uart_config[] = {
 #define UART_0_DMA_ISR      (isr_dma2_stream6)
 
 #define UART_NUMOF          (sizeof(uart_config) / sizeof(uart_config[0]))
-/** @} */
-
-/**
- * @name   ADC configuration
- * @{
- */
-#define ADC_NUMOF           (0)
-/** @} */
-
-/**
- * @name   DAC configuration
- * @{
- */
-#define DAC_NUMOF           (0)
 /** @} */
 
 #ifdef __cplusplus

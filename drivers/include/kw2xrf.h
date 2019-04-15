@@ -7,8 +7,8 @@
  */
 
 /**
- * @defgroup    drivers_kw2xrf kw2x radio-driver
- * @ingroup     drivers_netdev_netdev2
+ * @defgroup    drivers_kw2xrf KW2x radio-driver
+ * @ingroup     drivers_netdev
  * @brief       Device driver for the NXP CR20A and KW2xD radios
  * @{
  *
@@ -20,17 +20,18 @@
  * @author      Sebastian Meiling <s@mlng.net>
  */
 
-#ifndef KW2XDRF_H
-#define KW2XDRF_H
+#ifndef KW2XRF_H
+#define KW2XRF_H
 
 #include <stdint.h>
 
 #include "board.h"
 #include "periph/spi.h"
 #include "periph/gpio.h"
-#include "net/netdev2.h"
-#include "net/netdev2/ieee802154.h"
+#include "net/netdev.h"
+#include "net/netdev/ieee802154.h"
 #include "net/gnrc/nettype.h"
+#include "thread.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,12 +43,7 @@ extern "C" {
 #define KW2XRF_MAX_PKT_LENGTH           (IEEE802154_FRAME_LEN_MAX)
 
 /**
- * @brief   Default PAN ID used after initialization
- */
-#define KW2XRF_DEFAULT_PANID            (IEEE802154_DEFAULT_PANID)
-
-/**
- * @brief   Default channel used after initialization
+ * @name    Default channel used after initialization
  *
  * @{
  */
@@ -57,7 +53,7 @@ extern "C" {
 /** @} */
 
 /**
- * @brief   Allowed range of channels
+ * @name    Allowed range of channels
  *
  * @{
  */
@@ -84,13 +80,13 @@ extern "C" {
  * @brief   Internal device option flags
  *
  * `0x00ff` is reserved for general IEEE 802.15.4 flags
- * (see @ref netdev2_ieee802154_t)
+ * (see @ref netdev_ieee802154_t)
  *
  * @{
  */
-#define KW2XRF_OPT_SRC_ADDR_LONG    (NETDEV2_IEEE802154_SRC_MODE_LONG) /**< legacy define */
-#define KW2XRF_OPT_RAWDUMP          (NETDEV2_IEEE802154_RAW)           /**< legacy define */
-#define KW2XRF_OPT_ACK_REQ          (NETDEV2_IEEE802154_ACK_REQ)       /**< legacy define */
+#define KW2XRF_OPT_SRC_ADDR_LONG    (NETDEV_IEEE802154_SRC_MODE_LONG)  /**< legacy define */
+#define KW2XRF_OPT_RAWDUMP          (NETDEV_IEEE802154_RAW)            /**< legacy define */
+#define KW2XRF_OPT_ACK_REQ          (NETDEV_IEEE802154_ACK_REQ)        /**< legacy define */
 
 #define KW2XRF_OPT_AUTOCCA          (0x0100)    /**< CCA befor TX active */
 #define KW2XRF_OPT_PROMISCUOUS      (0x0200)    /**< promiscuous mode
@@ -109,7 +105,7 @@ extern "C" {
 /** @} */
 
 /**
- * @brief struct holding all params needed for device initialization
+ * @brief   Struct holding all params needed for device initialization
  */
 typedef struct kw2xrf_params {
     spi_t spi;                          /**< SPI bus the device is connected to */
@@ -121,14 +117,15 @@ typedef struct kw2xrf_params {
 /**
  * @brief   Device descriptor for KW2XRF radio devices
  *
- * @extends netdev2_ieee802154_t
+ * @extends netdev_ieee802154_t
  */
 typedef struct {
-    netdev2_ieee802154_t netdev;         /**< netdev2 parent struct */
+    netdev_ieee802154_t netdev;          /**< netdev parent struct */
     /**
      * @brief   device specific fields
      * @{
      */
+    thread_t *thread;                   /**< Network driver thread, for providing feedback from IRQ handler */
     kw2xrf_params_t params;             /**< parameters for initialization */
     uint8_t buf[KW2XRF_MAX_PKT_LENGTH]; /**< Buffer for incoming or outgoing packets */
     uint8_t state;                      /**< current state of the radio */
@@ -170,5 +167,5 @@ void kw2xrf_reset_phy(kw2xrf_t *dev);
 }
 #endif
 
-#endif /* KW2XDRF_H */
+#endif /* KW2XRF_H */
 /** @} */

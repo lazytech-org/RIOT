@@ -1,12 +1,11 @@
-APPLICATION = driver_encx24j600
 include ../Makefile.tests_common
 
-FEATURES_REQUIRED = periph_spi periph_gpio
+BOARD_INSUFFICIENT_MEMORY := arduino-duemilanove arduino-mega2560 arduino-nano \
+                             arduino-uno msb-430 msb-430h \
+                             nucleo-l053r8 nucleo-f031k6 nucleo-f042k6 \
+                             nucleo-l031k6 stm32f0discovery telosb \
+                             waspmote-pro wsn430-v1_3b wsn430-v1_4 z1
 
-BOARD_INSUFFICIENT_MEMORY := msb-430 msb-430h stm32f0discovery telosb weio z1
-
-USEMODULE += gnrc_netdev2
-USEMODULE += gnrc_netdev_default
 USEMODULE += auto_init_gnrc_netif
 USEMODULE += encx24j600
 USEMODULE += gnrc_ipv6_router_default
@@ -19,9 +18,9 @@ USEMODULE += ps
 CFLAGS += -DGNRC_PKTBUF_SIZE=2048
 
 # set board specific peripheral configurations
-ifneq (,$(filter nucleo-f334,$(BOARD)))
+ifneq (,$(filter nucleo-f334r8,$(BOARD)))
 # these settings are probably valid for PoEll-i on most nucelo boards, but
-# tested only on nucleo-f334
+# tested only on nucleo-f334r8
   ENC_SPI ?= SPI_DEV\(0\)
   ENC_CS  ?= GPIO_PIN\(PORT_C,10\)
   ENC_INT ?= GPIO_PIN\(PORT_D,2\)

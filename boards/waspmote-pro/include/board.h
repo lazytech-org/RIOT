@@ -7,9 +7,7 @@
  */
 
 /**
- * @defgroup    boards_waspmote-pro Waspmote PRO v1.2
- * @ingroup     boards
- * @brief       Board specific files for the Waspmote PRO v1.2 board.
+ * @ingroup     boards_waspmote-pro
  * @{
  *
  * @file
@@ -30,28 +28,25 @@ extern "C" {
 #endif
 
 /**
-* @brief As the CPU is too slow to handle 115200 baud, we set the default
-*        baudrate to 9600 for this board
+* @brief   As the CPU is too slow to handle 115200 baud, we set the default
+*          baudrate to 9600 for this board
 */
-#define UART_STDIO_BAUDRATE  (9600U)
-/** @} */
+#define STDIO_UART_BAUDRATE  (9600U)
 
 /**
- * @brief Use the UART 0 for STDIO on this board, if the XBee socket is not
- *        being used
+ * @brief   Use the UART 0 for STDIO on this board, if the XBee socket is not
+ *          being used
  */
 #ifdef XBEE_UART
 #if XBEE_UART == 0
-#define UART_STDIO_DEV       (UART_DEV(1))
+#define STDIO_UART_DEV       (UART_DEV(1))
 #else
-#define UART_STDIO_DEV       (UART_DEV(0))
+#define STDIO_UART_DEV       (UART_DEV(0))
 #endif
 #endif
-
-/** @} */
 
 /**
- * @name LED pin definitions
+ * @name    LED pin definitions
  * @{
  */
 #define LED0_PORT            PORTD
@@ -61,7 +56,7 @@ extern "C" {
 /** @} */
 
 /**
- * @name Macros for controlling the on-board LEDs.
+ * @name    Macros for controlling the on-board LEDs.
  * @{
  */
 #define LED0_ENABLE_PORT     DDRD |= (1 << DDD6)
@@ -84,7 +79,14 @@ extern "C" {
 /** @} */
 
 /**
- * @name Macros for controlling the on-board MUXes.
+ * @name    Usage of LED to turn on when a kernel panic occurs.
+ * @{
+ */
+#define LED_PANIC            LED_RED_ON
+/** @} */
+
+/**
+ * @name    Macros for controlling the on-board MUXes.
  * @{
  */
 #define MUX_PW_PORT                  PORTD
@@ -146,35 +148,26 @@ extern "C" {
 #define SET_MUX_SOCKET0              MUX_PW_ENABLE_PORT; MUX_PW_ON; \
                                      MUX_USB_XBEE_ENABLE_PORT; \
                                      MUX_USB_XBEE_ON
-
-
 /** @} */
 
 /**
- * Context swap defines
- * Setup to use PB5 which is pin change interrupt 5
- * This emulates a software triggered interrupt
- **/
-#define AVR_CONTEXT_SWAP_INIT do { \
-    DDRB |= (1 << PB5); \
-    PCICR |= (1 << PCIE0); \
-    PCMSK0 |= (1 << PCINT5); \
-} while (0)
-#define AVR_CONTEXT_SWAP_INTERRUPT_VECT  PCINT0_vect
-#define AVR_CONTEXT_SWAP_TRIGGER   PORTB ^= (1 << PB5)
+ * @name CPU clock scale for waspmote-pro
+ *
+ */
+#define CPU_ATMEGA_CLK_SCALE_INIT    CPU_ATMEGA_CLK_SCALE_DIV1
+/** @} */
 
 /**
- * @brief xtimer configuration values
+ * @name    xtimer configuration values
  * @{
  */
 #define XTIMER_WIDTH                (16)
-#define XTIMER_SHIFT                (4)
 #define XTIMER_HZ                   (62500UL)
 #define XTIMER_BACKOFF              (40)
 /** @} */
 
 /**
- * @brief Initialize board specific hardware, including clock, LEDs and std-IO
+ * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
  */
 void board_init(void);
 

@@ -1,17 +1,15 @@
-APPLICATION = gnrc_sock_ip
 include ../Makefile.tests_common
 
-RIOTBASE ?= $(CURDIR)/../..
+BOARD_INSUFFICIENT_MEMORY := arduino-duemilanove arduino-nano arduino-uno \
+                             chronos nucleo-f031k6 nucleo-f042k6 nucleo-l031k6
 
 USEMODULE += gnrc_sock_ip
 USEMODULE += gnrc_ipv6
 USEMODULE += ps
 
-CFLAGS += -DDEVELHELP
 CFLAGS += -DGNRC_PKTBUF_SIZE=200
 CFLAGS += -DTEST_SUITES
 
-include $(RIOTBASE)/Makefile.include
+TEST_ON_CI_WHITELIST += all
 
-test:
-	./tests/01-run.py
+include $(RIOTBASE)/Makefile.include

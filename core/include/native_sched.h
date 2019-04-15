@@ -20,8 +20,8 @@
  * @author      Raphael Hiesgen <raphael.hiesgen@haw-hamburg.de>
  */
 
-#ifndef NATIVE_SCHEDULER_H
-#define NATIVE_SCHEDULER_H
+#ifndef NATIVE_SCHED_H
+#define NATIVE_SCHED_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,11 +48,19 @@ inline int sched_yield(void)
     puts("[ERROR] sched_yield called (defined in sched.h)\n");
     return 0;
 }
+#else
+/**
+ * @brief Compilation with g++ may require the declaration of this function.
+ *
+ * If implementation of this function is required, it can be realized in
+ * thread_arch.c.
+ */
+extern int sched_yield(void);
 #endif /* BOARD_NATIVE */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* NATIVE_SCHEDULER_H */
+#endif /* NATIVE_SCHED_H */
 /** @} */

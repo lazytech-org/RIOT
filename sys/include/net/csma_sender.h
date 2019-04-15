@@ -22,12 +22,12 @@
  * @author      Martine Lenders <mlenders@inf.fu-berlin.de>
  */
 
-#ifndef CSMA_SENDER_H
-#define CSMA_SENDER_H
+#ifndef NET_CSMA_SENDER_H
+#define NET_CSMA_SENDER_H
 
 #include <stdint.h>
 
-#include "net/netdev2.h"
+#include "net/netdev.h"
 
 
 #ifdef __cplusplus
@@ -87,8 +87,7 @@ extern const csma_sender_conf_t CSMA_SENDER_CONF_DEFAULT;
  * CSMA/CA, this feature is used. Otherwise, a software procedure is used.
  *
  * @param[in] dev       netdev device, needs to be already initialized
- * @param[in] vector    pointer to the data
- * @param[in] count     number of elements in @p vector
+ * @param[in] iolist    pointer to the data
  * @param[in] conf      configuration for the backoff;
  *                      will be set to @ref CSMA_SENDER_CONF_DEFAULT if NULL.
  *
@@ -101,8 +100,8 @@ extern const csma_sender_conf_t CSMA_SENDER_CONF_DEFAULT;
  * @return              -EBUSY if radio medium never was available
  *                      to send the given data
  */
-int csma_sender_csma_ca_send(netdev2_t *dev, struct iovec *vector,
-                             unsigned count, const csma_sender_conf_t *conf);
+int csma_sender_csma_ca_send(netdev_t *dev, iolist_t *iolist,
+                             const csma_sender_conf_t *conf);
 
 /**
  * @brief   Sends a 802.15.4 frame when medium is avaiable.
@@ -121,8 +120,7 @@ int csma_sender_csma_ca_send(netdev2_t *dev, struct iovec *vector,
  *          @ref csma_sender_csma_ca_send().
  *
  * @param[in] dev       netdev device, needs to be already initialized
- * @param[in] vector    pointer to the data
- * @param[in] count     number of elements in @p vector
+ * @param[in] iolist    pointer to the data
  *
  * @return              number of bytes that were actually send out
  * @return              -ENODEV if @p dev is invalid
@@ -133,13 +131,13 @@ int csma_sender_csma_ca_send(netdev2_t *dev, struct iovec *vector,
  * @return              -EBUSY if radio medium was not available
  *                      to send the given data
  */
-int csma_sender_cca_send(netdev2_t *dev, struct iovec *vector, unsigned count);
+int csma_sender_cca_send(netdev_t *dev, iolist_t *iolist);
 
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CSMA_SENDER_H */
+#endif /* NET_CSMA_SENDER_H */
 
 /** @} */

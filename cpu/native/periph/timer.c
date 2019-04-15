@@ -5,19 +5,23 @@
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
  * directory for more details.
- *
- * @ingroup timer
- * @ingroup native_cpu
+ */
+
+/**
+ * @ingroup     cpu_native
+ * @ingroup     drivers_periph_timer
  * @{
- * @author  Ludwig Knüpfer <ludwig.knuepfer@fu-berlin.de>
- * @author  Kaspar Schleiser <kaspar@schleiser.de>
+ *
  * @file
- * @brief Native CPU periph/timer.h implementation
+ * @brief       Native CPU periph/timer.h implementation
  *
  * Uses POSIX realtime clock and POSIX itimer to mimic hardware.
  *
  * This is based on native's hwtimer implementation by Ludwig Knüpfer.
  * I removed the multiplexing, as xtimer does the same. (kaspar)
+ *
+ * @author      Ludwig Knüpfer <ludwig.knuepfer@fu-berlin.de>
+ * @author      Kaspar Schleiser <kaspar@schleiser.de>
  *
  * @}
  */
@@ -62,7 +66,7 @@ static struct itimerval itv;
 static unsigned long ts2ticks(struct timespec *tp)
 {
     /* TODO: check for overflow */
-    return((tp->tv_sec * NATIVE_TIMER_SPEED) + (tp->tv_nsec / 1000));
+    return(((unsigned long)tp->tv_sec * NATIVE_TIMER_SPEED) + (tp->tv_nsec / 1000));
 }
 
 /**

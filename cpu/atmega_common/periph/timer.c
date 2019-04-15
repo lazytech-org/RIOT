@@ -7,7 +7,8 @@
  */
 
 /**
- * @ingroup     driver_periph
+ * @ingroup     cpu_atmega_common
+ * @ingroup     drivers_periph_timer
  * @{
  *
  * @file
@@ -28,18 +29,13 @@
 #include "periph/timer.h"
 #include "periph_conf.h"
 
-#define ENABLE_DEBUG    (0)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
-
-/**
- * @brief   All timers have three channels
- */
-#define CHANNELS                (3)
 
 /**
  * @brief   We have 5 possible prescaler values
  */
-#define PRESCALE_NUMOF          (5U)
+#define PRESCALE_NUMOF (5U)
 
 /**
  * @brief   Possible prescaler values, encoded as 2 ^ val
@@ -50,20 +46,18 @@ static const uint8_t prescalers[] = { 0, 3, 6, 8, 10 };
  * @brief   Timer state context
  */
 typedef struct {
-    mega_timer_t *dev;          /**< timer device */
-    volatile uint8_t *mask;     /**< address of interrupt mask register */
-    volatile uint8_t *flag;     /**< address of interrupt flag register */
-    timer_cb_t cb;              /**< interrupt callback */
-    void *arg;                  /**< interrupt callback argument */
-    uint8_t mode;               /**< remember the configured mode */
-    uint8_t isrs;               /**< remember the interrupt state */
+    mega_timer_t *dev;      /**< timer device */
+    volatile uint8_t *mask; /**< address of interrupt mask register */
+    volatile uint8_t *flag; /**< address of interrupt flag register */
+    timer_cb_t cb;          /**< interrupt callback */
+    void *arg;              /**< interrupt callback argument */
+    uint8_t mode;           /**< remember the configured mode */
+    uint8_t isrs;           /**< remember the interrupt state */
 } ctx_t;
 
 /**
  * @brief   Allocate memory for saving the device states
- * @{
  */
-#ifdef TIMER_NUMOF
 static ctx_t ctx[] = {
 #ifdef TIMER_0
     { TIMER_0, TIMER_0_MASK, TIMER_0_FLAG, NULL, NULL, 0, 0 },
@@ -78,17 +72,27 @@ static ctx_t ctx[] = {
     { TIMER_3, TIMER_3_MASK, TIMER_3_FLAG, NULL, NULL, 0, 0 },
 #endif
 };
-#else
-/* fallback if no timer is configured */
-static ctx_t *ctx[] = {{ NULL }};
-#endif
-/** @} */
 
 /**
  * @brief Setup the given timer
  */
 int timer_init(tim_t tim, unsigned long freq, timer_cb_t cb, void *arg)
 {
+/*
+ * A debug pin can be used to probe timer interrupts with an oscilloscope or
+ * other time measurement equipment. Thus, determine when an interrupt occurs
+ * and how long the timer ISR takes.
+ * The pin should be defined in the makefile as follows:
+ * CFLAGS += -DDEBUG_TIMER_PORT=PORTF -DDEBUG_TIMER_DDR=DDRF \
+ *           -DDEBUG_TIMER_PIN=PORTF4
+ */
+#if defined(DEBUG_TIMER_PORT)
+    DEBUG_TIMER_DDR |= (1 << DEBUG_TIMER_PIN);
+    DEBUG_TIMER_PORT &= ~(1 << DEBUG_TIMER_PIN);
+    DEBUG("Debug Pin: DDR 0x%02x Port 0x%02x Pin 0x%02x\n",
+           &DEBUG_TIMER_DDR , &DEBUG_TIMER_PORT,(1<<DEBUG_TIMER_PIN));
+#endif
+
     DEBUG("timer.c: freq = %ld\n", freq);
     uint8_t pre = 0;
 
@@ -115,8 +119,8 @@ int timer_init(tim_t tim, unsigned long freq, timer_cb_t cb, void *arg)
     ctx[tim].dev->CNT = 0;
 
     /* save interrupt context and timer mode */
-    ctx[tim].cb   = cb;
-    ctx[tim].arg  = arg;
+    ctx[tim].cb = cb;
+    ctx[tim].arg = arg;
     ctx[tim].mode = (pre + 1);
 
     /* enable timer with calculated prescaler */
@@ -126,27 +130,22 @@ int timer_init(tim_t tim, unsigned long freq, timer_cb_t cb, void *arg)
     return 0;
 }
 
-int timer_set(tim_t tim, int channel, unsigned int timeout)
-{
-    return timer_set_absolute(tim, channel, timer_read(tim) + timeout);
-}
-
 int timer_set_absolute(tim_t tim, int channel, unsigned int value)
 {
-    if (channel >= CHANNELS) {
+    if (channel >= TIMER_CHANNELS) {
         return -1;
     }
 
     ctx[tim].dev->OCR[channel] = (uint16_t)value;
     *ctx[tim].flag &= ~(1 << (channel + OCF1A));
-    *ctx[tim].mask |=  (1 << (channel + OCIE1A));
+    *ctx[tim].mask |= (1 << (channel + OCIE1A));
 
     return 1;
 }
 
 int timer_clear(tim_t tim, int channel)
 {
-    if (channel >= CHANNELS) {
+    if (channel >= TIMER_CHANNELS) {
         return -1;
     }
 
@@ -173,14 +172,18 @@ void timer_start(tim_t tim)
 #ifdef TIMER_NUMOF
 static inline void _isr(tim_t tim, int chan)
 {
+#if defined(DEBUG_TIMER_PORT)
+    DEBUG_TIMER_PORT |= (1 << DEBUG_TIMER_PIN);
+#endif
+
     __enter_isr();
 
     *ctx[tim].mask &= ~(1 << (chan + OCIE1A));
     ctx[tim].cb(ctx[tim].arg, chan);
 
-    if (sched_context_switch_request) {
-        thread_yield();
-    }
+#if defined(DEBUG_TIMER_PORT)
+    DEBUG_TIMER_PORT &= ~(1 << DEBUG_TIMER_PIN);
+#endif
 
     __exit_isr();
 }
@@ -202,8 +205,8 @@ ISR(TIMER_0_ISRC, ISR_BLOCK)
 {
     _isr(0, 2);
 }
-#endif /* TIMER_0_ISRC */
-#endif /* TIMER_0 */
+#endif  /* TIMER_0_ISRC */
+#endif  /* TIMER_0 */
 
 #ifdef TIMER_1
 ISR(TIMER_1_ISRA, ISR_BLOCK)
@@ -216,11 +219,13 @@ ISR(TIMER_1_ISRB, ISR_BLOCK)
     _isr(1, 1);
 }
 
+#ifdef TIMER_1_ISRC
 ISR(TIMER_1_ISRC, ISR_BLOCK)
 {
     _isr(1, 2);
 }
-#endif /* TIMER_1 */
+#endif  /* TIMER_1_ISRC */
+#endif  /* TIMER_1 */
 
 #ifdef TIMER_2
 ISR(TIMER_2_ISRA, ISR_BLOCK)

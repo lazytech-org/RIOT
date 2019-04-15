@@ -7,8 +7,8 @@
  */
 
 /**
- * @defgroup    lwip_arch_cc    Compiler and processor description
- * @ingroup     lwip
+ * @defgroup    pkg_lwip_arch_cc    Compiler and processor description
+ * @ingroup     pkg_lwip
  * @brief       Describes compiler and processor to lwIP
  * @{
  *
@@ -17,8 +17,8 @@
  *
  * @author  Martine Lenders <mlenders@inf.fu-berlin.de>
  */
-#ifndef LWIP_ARCH_CC_H
-#define LWIP_ARCH_CC_H
+#ifndef ARCH_CC_H
+#define ARCH_CC_H
 
 #include <assert.h>
 #include <inttypes.h>
@@ -28,6 +28,10 @@
 #include "irq.h"
 #include "byteorder.h"
 #include "mutex.h"
+
+#ifdef MODULE_LOG
+#include "log.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,23 +46,6 @@ extern "C" {
 #   error "Byte order is neither little nor big!"
 #endif
 #endif
-
-/**
- * @brief   Generic types for lwIP
- * @{
- */
-typedef uint8_t u8_t;                   /**< unsigned 8-bit type */
-typedef int8_t  s8_t;                   /**< signed 8-bit type */
-typedef uint16_t u16_t;                 /**< unsigned 16-bit type */
-typedef int16_t  s16_t;                 /**< signed 16-bit type */
-typedef uint32_t u32_t;                 /**< unsigned 32-bit type */
-typedef int32_t  s32_t;                 /**< signed 32-bit type */
-
-typedef unsigned long mem_ptr_t;        /**< A generic pointer type. It has to be an integer type
-                                         *   (not void*, due to some pointer arithmetics). */
-/**
- * @}
- */
 
 /**
  * @brief   (sn)printf formatters for the generic lwIP types
@@ -128,5 +115,5 @@ typedef unsigned long mem_ptr_t;        /**< A generic pointer type. It has to b
 }
 #endif
 
-#endif /* LWIP_ARCH_CC_H */
+#endif /* ARCH_CC_H */
 /** @} */

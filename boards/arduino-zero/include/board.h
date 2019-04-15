@@ -7,9 +7,7 @@
  */
 
 /**
- * @defgroup    boards_arduino-zero Arduino Zero
- * @ingroup     boards
- * @brief       Support for the Arduino Zero board.
+ * @ingroup     boards_arduino-zero
  * @{
  *
  * @file
@@ -32,15 +30,15 @@ extern "C" {
 #endif
 
 /**
- * @brief   xtimer configuration
+ * @name    xtimer configuration
  * @{
  */
-#define XTIMER              TIMER_0
+#define XTIMER              TIMER_DEV(1)
 #define XTIMER_CHAN         (0)
 /** @} */
 
 /**
- * @brief   LED pin definitions and handlers
+ * @name    LED pin definitions and handlers
  * @{
  */
 #define LED0_PIN            GPIO_PIN(PA, 17)
@@ -54,7 +52,7 @@ extern "C" {
 /** @} */
 
 /**
- * @brief Initialize board specific hardware, including clock, LEDs and std-IO
+ * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
  */
 void board_init(void);
 

@@ -28,7 +28,7 @@ extern "C" {
 #endif
 
 /**
- * @brief   Set default configuration parameters for the MMA8x5x driver
+ * @name    Set default configuration parameters for the MMA8x5x driver
  * @{
  */
 #ifndef MMA8X5X_PARAM_I2C
@@ -36,9 +36,6 @@ extern "C" {
 #endif
 #ifndef MMA8X5X_PARAM_ADDR
 #define MMA8X5X_PARAM_ADDR      (MMA8X5X_I2C_ADDRESS)
-#endif
-#ifndef MMA8X5X_PARAM_TYPE
-#define MMA8X5X_PARAM_TYPE      (MMA8X5X_TYPE_MMA8652)
 #endif
 #ifndef MMA8X5X_PARAM_RATE
 #define MMA8X5X_PARAM_RATE      (MMA8X5X_RATE_200HZ)
@@ -51,12 +48,14 @@ extern "C" {
 #endif
 
 #ifndef MMA8X5X_PARAMS
-#define MMA8X5X_PARAMS          { .i2c    = MMA8X5X_PARAM_I2C, \
-                                  .addr   = MMA8X5X_PARAM_ADDR, \
-                                  .type   = MMA8X5X_PARAM_TYPE, \
-                                  .rate   = MMA8X5X_PARAM_RATE, \
+#define MMA8X5X_PARAMS          { .i2c    = MMA8X5X_PARAM_I2C,   \
+                                  .addr   = MMA8X5X_PARAM_ADDR,  \
+                                  .rate   = MMA8X5X_PARAM_RATE,  \
                                   .range  = MMA8X5X_PARAM_RANGE, \
                                   .offset = MMA8X5X_PARAM_OFFSET }
+#endif
+#ifndef MMA8X5X_SAUL_INFO
+#define MMA8X5X_SAUL_INFO       { .name = "mma8x5x" }
 #endif
 /**@}*/
 
@@ -73,9 +72,7 @@ static const mma8x5x_params_t mma8x5x_params[] =
  */
 static const saul_reg_info_t mma8x5x_saul_info[] =
 {
-    {
-        .name = "mma8652"
-    }
+    MMA8X5X_SAUL_INFO
 };
 
 #ifdef __cplusplus

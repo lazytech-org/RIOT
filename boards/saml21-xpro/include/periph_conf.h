@@ -30,12 +30,12 @@ extern "C" {
 #endif
 
 /**
- * @brief GCLK reference speed
+ * @brief   GCLK reference speed
  */
 #define CLOCK_CORECLOCK     (16000000U)
 
 /**
- * @name Timer peripheral configuration
+ * @name    Timer peripheral configuration
  * @{
  */
 #define TIMER_NUMOF        (1U)
@@ -49,29 +49,41 @@ extern "C" {
 /** @} */
 
 /**
- * @name UART configuration
+ * @name    UART configuration
  * @{
  */
-#define UART_NUMOF          (1U)
-#define UART_0_EN           1
-#define UART_IRQ_PRIO       1
+static const uart_conf_t uart_config[] = {
+    {    /* Virtual COM Port */
+        .dev      = &SERCOM3->USART,
+        .rx_pin   = GPIO_PIN(PA,23),
+        .tx_pin   = GPIO_PIN(PA,22),
+        .mux      = GPIO_MUX_C,
+        .rx_pad   = UART_PAD_RX_1,
+        .tx_pad   = UART_PAD_TX_0,
+        .flags    = UART_FLAG_NONE,
+        .gclk_src = GCLK_PCHCTRL_GEN_GCLK0
+    },
+    {    /* EXT1 header */
+        .dev      = &SERCOM4->USART,
+        .rx_pin   = GPIO_PIN(PB, 9),
+        .tx_pin   = GPIO_PIN(PB, 8),
+        .mux      = GPIO_MUX_D,
+        .rx_pad   = UART_PAD_RX_1,
+        .tx_pad   = UART_PAD_TX_0,
+        .flags    = UART_FLAG_NONE,
+        .gclk_src = GCLK_PCHCTRL_GEN_GCLK0
+    }
+};
 
-/* UART 0 device configuration */
-#define UART_0_DEV          SERCOM3->USART
-#define UART_0_IRQ          SERCOM3_IRQn
+/* interrupt function name mapping */
 #define UART_0_ISR          isr_sercom3
-#define UART_0_REF_F        (16000000UL)
-#define UART_0_RUNSTDBY     1
+#define UART_1_ISR          isr_sercom4
 
-/* UART 0 pin configuration */
-#define UART_0_PORT         (PORT->Group[0])
-#define UART_0_TX_PIN       (22)
-#define UART_0_RX_PIN       (23)
-#define UART_0_PINS         (((PORT_PA22 | PORT_PA23) >> 16) | PORT_WRCONFIG_HWSEL)
+#define UART_NUMOF          (sizeof(uart_config) / sizeof(uart_config[0]))
 /** @} */
 
 /**
- * @name SPI configuration
+ * @name    SPI configuration
  * @{
  */
 static const spi_conf_t spi_config[] = {
@@ -93,14 +105,26 @@ static const spi_conf_t spi_config[] = {
 /** @} */
 
 /**
- * @name I2C configuration
+ * @name    I2C configuration
  * @{
  */
-#define I2C_NUMOF          (0)
+static const i2c_conf_t i2c_config[] = {
+    {
+        .dev      = &(SERCOM2->I2CM),
+        .speed    = I2C_SPEED_NORMAL,
+        .scl_pin  = GPIO_PIN(PA, 9),
+        .sda_pin  = GPIO_PIN(PA, 8),
+        .mux      = GPIO_MUX_D,
+        .gclk_src = GCLK_PCHCTRL_GEN_GCLK0,
+        .flags    = I2C_FLAG_NONE
+    }
+};
+
+#define I2C_NUMOF           (sizeof(i2c_config) / sizeof(i2c_config[0]))
 /** @} */
 
 /**
- * @name RTC configuration
+ * @name    RTC configuration
  * @{
  */
 #define RTC_NUMOF           (1)
@@ -110,12 +134,33 @@ static const spi_conf_t spi_config[] = {
 /** @} */
 
 /**
- * @name RTT configuration
+ * @name    RTT configuration
  * @{
  */
 #define RTT_FREQUENCY       (32768U)
 #define RTT_MAX_VALUE       (0xffffffffU)
 #define RTT_NUMOF           (1)
+/** @} */
+
+/**
+ * @name ADC Configuration
+ * @{
+ */
+#define ADC_NUMOF                          (3U)
+
+/* ADC 0 Default values */
+#define ADC_0_CLK_SOURCE                   0 /* GCLK_GENERATOR_0 */
+#define ADC_0_PRESCALER                    ADC_CTRLB_PRESCALER_DIV256
+
+static const adc_conf_chan_t adc_channels[] = {
+    /* port, pin, muxpos */
+    {GPIO_PIN(PA, 10), ADC_INPUTCTRL_MUXPOS(ADC_INPUTCTRL_MUXPOS_AIN18)},
+    {GPIO_PIN(PA, 11), ADC_INPUTCTRL_MUXPOS(ADC_INPUTCTRL_MUXPOS_AIN19)},
+    {GPIO_PIN(PA, 2), ADC_INPUTCTRL_MUXPOS(ADC_INPUTCTRL_MUXPOS_AIN0)}
+};
+
+#define ADC_0_NEG_INPUT                    ADC_INPUTCTRL_MUXNEG(0x18u)
+#define ADC_0_REF_DEFAULT                  ADC_REFCTRL_REFSEL_INTVCC2
 /** @} */
 
 #ifdef __cplusplus

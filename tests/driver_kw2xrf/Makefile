@@ -1,9 +1,9 @@
-APPLICATION = driver_kw2xrf
 include ../Makefile.tests_common
 
-FEATURES_REQUIRED = periph_spi periph_gpio
-
-BOARD_INSUFFICIENT_MEMORY := stm32f0discovery nucleo-f334 weio
+BOARD_INSUFFICIENT_MEMORY := arduino-duemilanove arduino-mega2560 arduino-nano \
+                             arduino-uno nucleo-f031k6 nucleo-f042k6 \
+                             nucleo-l031k6 nucleo-f334r8 nucleo-l053r8 \
+                             stm32f0discovery waspmote-pro
 
 USEMODULE += auto_init_gnrc_netif
 USEMODULE += gnrc_netdev_default
@@ -15,7 +15,5 @@ DRIVER ?= kw2xrf
 
 # finally include the actual chosen driver
 USEMODULE += $(DRIVER)
-
-CFLAGS += -DDEVELHELP
 
 include $(RIOTBASE)/Makefile.include

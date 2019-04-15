@@ -10,14 +10,17 @@
 /**
  * @defgroup    drivers_mma8x5x MMA8x5x Accelerometer
  * @ingroup     drivers_sensors
+ * @ingroup     drivers_saul
  * @brief       Driver for the Freescale MMA8x5x 3-Axis accelerometer.
- *              The driver will initialize the accelerometer for best
- *              resolution. After the initialization the accelerometer will make
- *              measurements at periodic times. The measurements period and
- *              scale range can be determined by accelerometer initialization.
- *              This driver only implements basic functionality (i.e. no support
- *              for external interrupt pins).
  *
+ * The driver will initialize the accelerometer for best resolution. After the
+ * initialization the accelerometer will make measurements at periodic times.
+ * The measurements period and scale range can be determined by accelerometer
+ * initialization.
+ * This driver only implements basic functionality (i.e. no support
+ * for external interrupt pins).
+ *
+ * This driver provides @ref drivers_saul capabilities.
  * @{
  *
  * @file
@@ -92,7 +95,6 @@ enum {
 typedef struct {
     i2c_t i2c;                  /**< I2C bus the device is connected to */
     uint8_t addr;               /**< I2C bus address of the device */
-    uint8_t type;               /**< device type */
     uint8_t rate;               /**< sampling rate to use */
     uint8_t range;              /**< scale range to use */
     uint8_t offset[3];          /**< data offset in X, Y, and Z direction */
@@ -136,21 +138,21 @@ int mma8x5x_init(mma8x5x_t *dev, const mma8x5x_params_t *params);
  * @param[in]  y            offset correction value for y-axis
  * @param[in]  z            offset correction value for z-axis
  */
-void mma8x5x_set_user_offset(mma8x5x_t *dev, int8_t x, int8_t y, int8_t z);
+void mma8x5x_set_user_offset(const mma8x5x_t *dev, int8_t x, int8_t y, int8_t z);
 
 /**
  * @brief   Set active mode, this enables periodic measurements
  *
  * @param[out] dev          device descriptor of accelerometer to reset
  */
-void mma8x5x_set_active(mma8x5x_t *dev);
+void mma8x5x_set_active(const mma8x5x_t *dev);
 
 /**
  * @brief   Set standby mode.
  *
  * @param[in]  dev          device descriptor of accelerometer
  */
-void mma8x5x_set_standby(mma8x5x_t *dev);
+void mma8x5x_set_standby(const mma8x5x_t *dev);
 
 /**
  * @brief   Check for new set of measurement data
@@ -160,7 +162,7 @@ void mma8x5x_set_standby(mma8x5x_t *dev);
  * @return                  MMA8X5X_DATA_READY if new sample is ready
  * @return                  MMA8X5X_NODATA if nothing is available
  */
-int mma8x5x_is_ready(mma8x5x_t *dev);
+int mma8x5x_is_ready(const mma8x5x_t *dev);
 
 /**
  * @brief   Read accelerometer's data
@@ -176,7 +178,33 @@ int mma8x5x_is_ready(mma8x5x_t *dev);
  * @param[in]  dev          device descriptor of accelerometer
  * @param[out] data         the current acceleration data [in mg]
  */
-void mma8x5x_read(mma8x5x_t *dev, mma8x5x_data_t *data);
+void mma8x5x_read(const mma8x5x_t *dev, mma8x5x_data_t *data);
+
+/**
+ * @brief   Configure motion detection interrupt
+ *
+ * User needs to configure MCU side of the selected int pin.  mma8x5x will set
+ * the pin to low on interrupt.  Before another interrupt can occur, the
+ * current interrupt must be acknowledged using @p mma8x5x_ack_int().
+ *
+ * @param[in]   dev         device descriptor of accelerometer
+ * @param[in]   int_pin     select mma8x5x int pin (1 or 2)
+ * @param[in]   threshold   motion detection threshold (see datasheet)
+ */
+void mma8x5x_set_motiondetect(const mma8x5x_t *dev, uint8_t int_pin, uint8_t threshold);
+
+/**
+ * @brief   Acknowledge motion detection interrupt
+ *
+ * Acknowledges (clears) a motion detection interrupt.
+ * See @ref mma8x5x_set_motiondetect().
+ *
+ * @warning: this does incur an I2C write, thus should not be done from within
+ *           the ISR.
+ *
+ * @param[in]   dev         device descriptor of accelerometer
+ */
+void mma8x5x_ack_int(const mma8x5x_t *dev);
 
 #ifdef __cplusplus
 }

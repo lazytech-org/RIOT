@@ -26,7 +26,7 @@
 #include "mutex.h"
 #include "periph/spi.h"
 #include "periph/gpio.h"
-#include "net/netdev2.h"
+#include "net/netdev.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,24 +39,21 @@ typedef struct {
     spi_t spi;              /**< If I drink */
     gpio_t cs_pin;          /**< beer in the evening, */
     gpio_t int_pin;         /**< I will be most certainly */
-    gpio_t reset_pin;       /**< drunk in the morning?! */
+    gpio_t rst_pin;         /**< drunk in the morning?! */
 } enc28j60_params_t;
 
 /**
  * @brief   ENC28J60 device descriptor
  */
 typedef struct {
-    netdev2_t netdev;       /**< pull in the netdev2 fields */
-    spi_t spi;              /**< SPI bus the transceiver is connected to */
-    gpio_t cs_pin;          /**< pin connected to the CHIP SELECT line */
-    gpio_t int_pin;         /**< pin connected to the INT line */
-    gpio_t reset_pin;       /**< pin connected to the RESET line */
-    mutex_t devlock;        /**< lock the device on access */
-    int8_t bank;            /**< remember the active register bank */
+    netdev_t netdev;        /**< pull in the netdev fields */
+    enc28j60_params_t p;    /**< SPI and pin confiuration */
+    mutex_t lock;           /**< lock the device on access */
+    uint32_t tx_time;       /**< last transmission time for timeout handling */
 } enc28j60_t;
 
 /**
- * @brief   Ready the device for initialization through it's netdev2 interface
+ * @brief   Ready the device for initialization through it's netdev interface
  *
  * @param[in] dev           device descriptor
  * @param[in] params        peripheral configuration to use

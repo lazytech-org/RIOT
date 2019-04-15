@@ -8,7 +8,7 @@
  */
 
 /**
- * @ingroup     board_frdm-k64f
+ * @ingroup     boards_frdm-k64f
  * @{
  *
  * @file
@@ -31,21 +31,38 @@ extern "C"
  * @name Clock system configuration
  * @{
  */
-#define KINETIS_CPU_USE_MCG          1
-
-#define KINETIS_MCG_USE_ERC          1
-#define KINETIS_MCG_USE_PLL          1
-#define KINETIS_MCG_DCO_RANGE        (24000000U)
-#define KINETIS_MCG_ERC_OSCILLATOR   0
-#define KINETIS_MCG_ERC_FRDIV        6           /* ERC devider = 1280 */
-#define KINETIS_MCG_ERC_RANGE        2
-#define KINETIS_MCG_ERC_FREQ         50000000
-#define KINETIS_MCG_PLL_PRDIV        19          /* divide factor = 20 */
-#define KINETIS_MCG_PLL_VDIV0        0           /* multiply factor = 24 */
-#define KINETIS_MCG_PLL_FREQ         60000000
-
-#define CLOCK_CORECLOCK              KINETIS_MCG_PLL_FREQ
-#define CLOCK_BUSCLOCK               (CLOCK_CORECLOCK / 2)
+static const clock_config_t clock_config = {
+    /*
+     * This configuration results in the system running from the PLL output with
+     * the following clock frequencies:
+     * Core:  60 MHz
+     * Bus:   60 MHz
+     * Flex:  20 MHz
+     * Flash: 20 MHz
+     */
+    .clkdiv1 = SIM_CLKDIV1_OUTDIV1(0) | SIM_CLKDIV1_OUTDIV2(0) |
+               SIM_CLKDIV1_OUTDIV3(2) | SIM_CLKDIV1_OUTDIV4(2),
+    .rtc_clc = 0, /* External load caps on board */
+    .osc32ksel = SIM_SOPT1_OSC32KSEL(2),
+    .clock_flags =
+        /* No OSC0_EN, use EXTAL directly without OSC0 */
+        KINETIS_CLOCK_RTCOSC_EN |
+        KINETIS_CLOCK_USE_FAST_IRC |
+        0,
+    .default_mode = KINETIS_MCG_MODE_PEE,
+    /* The board has an external RMII (Ethernet) clock which drives the ERC at 50 MHz */
+    .erc_range = KINETIS_MCG_ERC_RANGE_VERY_HIGH,
+    .osc_clc = 0, /* External load caps on board */
+    .oscsel = MCG_C7_OSCSEL(0), /* Use EXTAL for external clock */
+    .fcrdiv = MCG_SC_FCRDIV(0), /* Fast IRC divide by 1 => 4 MHz */
+    .fll_frdiv = MCG_C1_FRDIV(0b111), /* Divide by 1536 => FLL input 32252 Hz */
+    .fll_factor_fei = KINETIS_MCG_FLL_FACTOR_1464, /* FLL freq = 48 MHz  */
+    .fll_factor_fee = KINETIS_MCG_FLL_FACTOR_1920, /* FLL freq = 62.5 MHz */
+    .pll_prdiv = MCG_C5_PRDIV0(0b10011), /* Divide by 20 */
+    .pll_vdiv  = MCG_C6_VDIV0(0b00000), /* Multiply by 24 => PLL freq = 60 MHz */
+};
+#define CLOCK_CORECLOCK              (60000000ul)
+#define CLOCK_BUSCLOCK               (CLOCK_CORECLOCK / 1)
 /** @} */
 
 /**
@@ -53,79 +70,103 @@ extern "C"
  * @{
  */
 #define PIT_NUMOF               (2U)
-#define PIT_CONFIG {                 \
-        {                            \
-            .prescaler_ch = 0,       \
-            .count_ch = 1,           \
-        },                           \
-        {                            \
-            .prescaler_ch = 2,       \
-            .count_ch = 3,           \
-        },                           \
+#define PIT_CONFIG {            \
+        {                       \
+            .prescaler_ch = 0,  \
+            .count_ch = 1,      \
+        },                      \
+        {                       \
+            .prescaler_ch = 2,  \
+            .count_ch = 3,      \
+        },                      \
     }
-#define LPTMR_NUMOF             (0U)
-#define LPTMR_CONFIG {}
+#define LPTMR_NUMOF             (1U)
+#define LPTMR_CONFIG {          \
+    {                           \
+        .dev = LPTMR0,          \
+        .irqn = LPTMR0_IRQn,    \
+        .src = 2,               \
+        .base_freq = 32768u,    \
+    },                          \
+}
 #define TIMER_NUMOF             ((PIT_NUMOF) + (LPTMR_NUMOF))
 
 #define PIT_BASECLOCK           (CLOCK_BUSCLOCK)
-#define PIT_CLOCKGATE           (BITBAND_REG32(SIM->SCGC6, SIM_SCGC6_PIT_SHIFT))
 #define PIT_ISR_0               isr_pit1
 #define PIT_ISR_1               isr_pit3
 #define LPTMR_ISR_0             isr_lptmr0
-
 /** @} */
 
 /**
 * @name UART configuration
 * @{
 */
-#define UART_NUMOF                   (1U)
-#define UART_0_EN                    1
-#define UART_IRQ_PRIO                1
-#define UART_CLK                     CLOCK_CORECLOCK
+static const uart_conf_t uart_config[] = {
+    {
+        .dev    = UART0,
+        .freq   = CLOCK_CORECLOCK,
+        .pin_rx = GPIO_PIN(PORT_B, 16),
+        .pin_tx = GPIO_PIN(PORT_B, 17),
+        .pcr_rx = PORT_PCR_MUX(3),
+        .pcr_tx = PORT_PCR_MUX(3),
+        .irqn   = UART0_RX_TX_IRQn,
+        .scgc_addr = &SIM->SCGC4,
+        .scgc_bit = SIM_SCGC4_UART0_SHIFT,
+        .mode   = UART_MODE_8N1,
+        .type   = KINETIS_UART,
+    },
+};
 
-/* UART 0 device configuration */
-#define KINETIS_UART                 UART_Type
-#define UART_0_DEV                   UART0
-#define UART_0_CLKEN()               (SIM->SCGC4 |= (SIM_SCGC4_UART0_MASK))
-#define UART_0_CLK                   UART_CLK
-#define UART_0_IRQ_CHAN              UART0_RX_TX_IRQn
-#define UART_0_ISR                   isr_uart0_rx_tx
-/* UART 0 pin configuration */
-#define UART_0_PORT_CLKEN()          (SIM->SCGC5 |= (SIM_SCGC5_PORTB_MASK))
-#define UART_0_PORT                  PORTB
-#define UART_0_RX_PIN                16
-#define UART_0_TX_PIN                17
-#define UART_0_AF                    3
+#define UART_0_ISR          (isr_uart0_rx_tx)
+
+#define UART_NUMOF          (sizeof(uart_config) / sizeof(uart_config[0]))
 /** @} */
 
 /**
- * @name ADC configuration
+ * @name    ADC configuration
  * @{
  */
 static const adc_conf_t adc_config[] = {
-    /* dev, pin, channel */
-    { ADC0, GPIO_PIN(PORT_B, 10), 14 },
-    { ADC0, GPIO_PIN(PORT_B, 11), 15 },
-    { ADC0, GPIO_PIN(PORT_C, 11), 7 },
-    { ADC0, GPIO_PIN(PORT_C, 10), 6 },
-    { ADC0, GPIO_PIN(PORT_C, 8), 4 },
-    { ADC0, GPIO_PIN(PORT_C, 9), 5 },
+    [ 0] = { .dev = ADC0, .pin = GPIO_PIN(PORT_B,  2), .chan = 12, .avg = ADC_AVG_MAX }, /* PTB2 (Arduino A0) */
+    [ 1] = { .dev = ADC0, .pin = GPIO_PIN(PORT_B,  3), .chan = 13, .avg = ADC_AVG_MAX }, /* PTB3 (Arduino A1) */
+    [ 2] = { .dev = ADC1, .pin = GPIO_PIN(PORT_B, 10), .chan = 14, .avg = ADC_AVG_MAX }, /* PTB10 (Arduino A2) */
+    [ 3] = { .dev = ADC1, .pin = GPIO_PIN(PORT_B, 11), .chan = 15, .avg = ADC_AVG_MAX }, /* PTB11 (Arduino A3) */
+    [ 4] = { .dev = ADC1, .pin = GPIO_PIN(PORT_C, 11), .chan =  7, .avg = ADC_AVG_MAX }, /* PTC11 (Arduino A4) */
+    [ 5] = { .dev = ADC1, .pin = GPIO_PIN(PORT_C, 10), .chan =  6, .avg = ADC_AVG_MAX }, /* PTC10 (Arduino A5) */
+    [ 6] = { .dev = ADC0, .pin = GPIO_UNDEF          , .chan =  0, .avg = ADC_AVG_MAX }, /* ADC0_DP0 */
+    [ 7] = { .dev = ADC0, .pin = GPIO_UNDEF          , .chan = 19, .avg = ADC_AVG_MAX }, /* ADC0_DM0 */
+    [ 8] = { .dev = ADC0, .pin = GPIO_UNDEF          , .chan = (0 | ADC_SC1_DIFF_MASK), .avg = ADC_AVG_MAX }, /* ADC0_DP0 - ADC0_DM0 */
+    [ 9] = { .dev = ADC1, .pin = GPIO_UNDEF          , .chan =  0, .avg = ADC_AVG_MAX }, /* ADC1_DP0 */
+    [10] = { .dev = ADC1, .pin = GPIO_UNDEF          , .chan = 19, .avg = ADC_AVG_MAX }, /* ADC1_DM0 */
+    [11] = { .dev = ADC1, .pin = GPIO_UNDEF          , .chan = (0 | ADC_SC1_DIFF_MASK), .avg = ADC_AVG_MAX }, /* ADC1_DP0 - ADC1_DM0 */
+    [12] = { .dev = ADC0, .pin = GPIO_UNDEF          , .chan =  1, .avg = ADC_AVG_MAX }, /* ADC0_DP1 */
+    [13] = { .dev = ADC0, .pin = GPIO_UNDEF          , .chan = 20, .avg = ADC_AVG_MAX }, /* ADC0_DM1 */
+    [14] = { .dev = ADC0, .pin = GPIO_UNDEF          , .chan = (1 | ADC_SC1_DIFF_MASK), .avg = ADC_AVG_MAX }, /* ADC0_DP1 - ADC0_DM1 */
+    [15] = { .dev = ADC1, .pin = GPIO_UNDEF          , .chan =  1, .avg = ADC_AVG_MAX }, /* ADC1_DP1 */
+    [16] = { .dev = ADC1, .pin = GPIO_UNDEF          , .chan = 20, .avg = ADC_AVG_MAX }, /* ADC1_DM1 */
+    [17] = { .dev = ADC1, .pin = GPIO_UNDEF          , .chan = (1 | ADC_SC1_DIFF_MASK), .avg = ADC_AVG_MAX }, /* ADC1_DP1 - ADC1_DM1 */
+    /* internal: temperature sensor */
+    /* The temperature sensor has a very high output impedance, it must not be
+     * sampled using hardware averaging, or the sampled values will be garbage */
+    [18] = { .dev = ADC0, .pin = GPIO_UNDEF, .chan = 26, .avg = ADC_AVG_NONE },
+    /* internal: band gap */
+    /* Note: the band gap buffer uses a bit of current and is turned off by default,
+     * Set PMC->REGSC |= PMC_REGSC_BGBE_MASK before reading or the input will be floating */
+    [19] = { .dev = ADC0, .pin = GPIO_UNDEF, .chan = 27, .avg = ADC_AVG_MAX },
 };
 
 #define ADC_NUMOF           (sizeof(adc_config) / sizeof(adc_config[0]))
-/** @} */
-
-/**
- * @name DAC configuration
- * @{
+/*
+ * K64F ADC reference settings:
+ * 0: VREFH/VREFL external pin pair
+ * 1: VREF_OUT internal 1.2 V reference (VREF module must be enabled)
+ * 2-3: reserved
  */
-#define DAC_CONFIG {}
-#define DAC_NUMOF  0
+#define ADC_REF_SETTING     0
 /** @} */
 
 /**
- * @brief   PWM configuration
+ * @name    PWM configuration
  * @{
  */
 static const pwm_conf_t pwm_config[] = {
@@ -152,7 +193,7 @@ static const pwm_conf_t pwm_config[] = {
  * Clock configuration values based on the configured 30Mhz module clock.
  *
  * Auto-generated by:
- * cpu/kinetis_common/dist/calc_spi_scalers/calc_spi_scalers.c
+ * cpu/kinetis/dist/calc_spi_scalers/calc_spi_scalers.c
  *
 * @{
 */
@@ -215,67 +256,21 @@ static const spi_conf_t spi_config[] = {
 * @name I2C configuration
 * @{
 */
-#define I2C_NUMOF                    (1U)
-#define I2C_CLK                      CLOCK_CORECLOCK
-#define I2C_0_EN                     1
-#define I2C_IRQ_PRIO                 1
-/* Low (10 kHz): MUL = 4, SCL divider = 2560, total: 10240 */
-#define KINETIS_I2C_F_ICR_LOW        (0x3D)
-#define KINETIS_I2C_F_MULT_LOW       (2)
-/* Normal (100 kHz): MUL = 2, SCL divider = 240, total: 480 */
-#define KINETIS_I2C_F_ICR_NORMAL     (0x1F)
-#define KINETIS_I2C_F_MULT_NORMAL    (1)
-/* Fast (400 kHz): MUL = 1, SCL divider = 128, total: 128 */
-#define KINETIS_I2C_F_ICR_FAST       (0x17)
-#define KINETIS_I2C_F_MULT_FAST      (0)
-/* Fast plus (1000 kHz): MUL = 1, SCL divider = 48, total: 48 */
-#define KINETIS_I2C_F_ICR_FAST_PLUS  (0x10)
-#define KINETIS_I2C_F_MULT_FAST_PLUS (0)
-
-/* I2C 0 device configuration */
-#define I2C_0_DEV                    I2C0
-#define I2C_0_CLKEN()                (SIM->SCGC4 |= (SIM_SCGC4_I2C0_MASK))
-#define I2C_0_CLKDIS()               (SIM->SCGC4 &= ~(SIM_SCGC4_I2C0_MASK))
-#define I2C_0_IRQ                    I2C0_IRQn
-#define I2C_0_IRQ_HANDLER            isr_i2c0
-/* I2C 0 pin configuration */
-#define I2C_0_PORT                   PORTE
-#define I2C_0_PORT_CLKEN()           (SIM->SCGC5 |= (SIM_SCGC5_PORTE_MASK))
-#define I2C_0_PIN_AF                 5
-#define I2C_0_SDA_PIN                25
-#define I2C_0_SCL_PIN                24
-#define I2C_0_PORT_CFG               (PORT_PCR_MUX(I2C_0_PIN_AF) | PORT_PCR_ODE_MASK)
-/** @} */
-
-/**
- * @name GPIO configuration
- * @{
- */
-#define GPIO_IRQ_PRIO                CPU_DEFAULT_IRQ_PRIO
-/** @} */
-
-/**
-* @name RTT and RTC configuration
-* @{
-*/
-#define RTT_NUMOF                    (1U)
-#define RTC_NUMOF                    (1U)
-#define RTT_DEV                      RTC
-#define RTT_IRQ                      RTC_IRQn
-#define RTT_IRQ_PRIO                 10
-#define RTT_UNLOCK()                 (SIM->SCGC6 |= (SIM_SCGC6_RTC_MASK))
-#define RTT_ISR                      isr_rtc
-#define RTT_FREQUENCY                (1)
-#define RTT_MAX_VALUE                (0xffffffff)
-/** @} */
-
-/**
- * @name Random Number Generator configuration
- * @{
- */
-#define KINETIS_RNGA                RNG
-#define HWRNG_CLKEN()               (SIM->SCGC6 |= (1 << 9))
-#define HWRNG_CLKDIS()              (SIM->SCGC6 &= ~(1 << 9))
+static const i2c_conf_t i2c_config[] = {
+    {
+        .i2c = I2C0,
+        .scl_pin = GPIO_PIN(PORT_E, 24),
+        .sda_pin = GPIO_PIN(PORT_E, 25),
+        .freq = CLOCK_BUSCLOCK,
+        .speed = I2C_SPEED_FAST,
+        .irqn = I2C0_IRQn,
+        .scl_pcr = (PORT_PCR_MUX(5) | PORT_PCR_ODE_MASK),
+        .sda_pcr = (PORT_PCR_MUX(5) | PORT_PCR_ODE_MASK),
+    },
+};
+#define I2C_NUMOF           (sizeof(i2c_config) / sizeof(i2c_config[0]))
+#define I2C_0_ISR           (isr_i2c0)
+#define I2C_1_ISR           (isr_i2c1)
 /** @} */
 
 #ifdef __cplusplus

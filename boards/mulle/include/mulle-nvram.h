@@ -6,6 +6,16 @@
  * details.
  */
 
+/**
+ * @ingroup     boards_mulle
+ * @{
+ *
+ * @file
+ * @brief       NVRAM offsets for the Eistec Mulle IoT board
+ *
+ * @author      Joakim Gebart <joakim.gebart@eistec.se>
+ */
+
 #ifndef MULLE_NVRAM_H
 #define MULLE_NVRAM_H
 
@@ -14,16 +24,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/**
- * @ingroup     board_mulle
- * @{
- *
- * @file
- * @brief       NVRAM offsets for the Eistec Mulle IoT board
- *
- * @author      Joakim Gebart <joakim.gebart@eistec.se>
- */
 
 typedef enum mulle_nvram_address {
     /** @brief NVRAM magic number, used to identify an initialized FRAM device. */
@@ -36,10 +36,9 @@ typedef enum mulle_nvram_address {
 
 extern nvram_t *mulle_nvram;
 
-/** @} */
-
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* MULLE_NVRAM_H */
+/** @} */

@@ -19,8 +19,8 @@
  * @author  Martine Lenders <mlenders@inf.fu-berlin.de>
  * @author  Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
-#ifndef GNRC_PKT_H
-#define GNRC_PKT_H
+#ifndef NET_GNRC_PKT_H
+#define NET_GNRC_PKT_H
 
 #include <inttypes.h>
 #include <stdlib.h>
@@ -96,20 +96,25 @@ extern "C" {
  *      | * L2 header 3
  *      * L2 header 4
  *
+ * The first three fields (next, data, size) match iolist_t (named iol_next,
+ * iol_base and iol_len there).  That means that any pktsnip can be casted to
+ * iolist_t for direct passing to e.g., netdev send() functions.
+ *
  * @note    This type has no initializer on purpose. Please use @ref net_gnrc_pktbuf
  *          as factory.
  */
 /* packed to be aligned correctly in the static packet buffer */
 typedef struct gnrc_pktsnip {
+    /* the first three fields *MUST* match iolist_t! */
+    struct gnrc_pktsnip *next;      /**< next snip in the packet */
+    void *data;                     /**< pointer to the data of the snip */
+    size_t size;                    /**< the length of the snip in byte */
     /**
      * @brief   Counter of threads currently having control over this packet.
      *
      * @internal
      */
     unsigned int users;
-    struct gnrc_pktsnip *next;      /**< next snip in the packet */
-    void *data;                     /**< pointer to the data of the snip */
-    size_t size;                    /**< the length of the snip in byte */
     gnrc_nettype_t type;            /**< protocol of the packet snip */
 #ifdef MODULE_GNRC_NETERR
     kernel_pid_t err_sub;           /**< subscriber to errors related to this
@@ -124,11 +129,11 @@ typedef struct gnrc_pktsnip {
  *
  * @return  length of the list of headers.
  */
-static inline size_t gnrc_pkt_len(gnrc_pktsnip_t *pkt)
+static inline size_t gnrc_pkt_len(const gnrc_pktsnip_t *pkt)
 {
     size_t len = 0;
 
-    while (pkt) {
+    while (pkt != NULL) {
         len += pkt->size;
         pkt = pkt->next;
     }
@@ -144,11 +149,11 @@ static inline size_t gnrc_pkt_len(gnrc_pktsnip_t *pkt)
  *
  * @return  length of the list of headers.
  */
-static inline size_t gnrc_pkt_len_upto(gnrc_pktsnip_t *pkt, gnrc_nettype_t type)
+static inline size_t gnrc_pkt_len_upto(const gnrc_pktsnip_t *pkt, gnrc_nettype_t type)
 {
     size_t len = 0;
 
-    while (pkt) {
+    while (pkt != NULL) {
         len += pkt->size;
 
         if (pkt->type == type) {
@@ -172,7 +177,7 @@ static inline size_t gnrc_pkt_count(const gnrc_pktsnip_t *pkt)
 {
     size_t count = 0;
 
-    while (pkt) {
+    while (pkt != NULL) {
         ++count;
         pkt = pkt->next;
     }
@@ -196,5 +201,5 @@ gnrc_pktsnip_t *gnrc_pktsnip_search_type(gnrc_pktsnip_t *pkt,
 }
 #endif
 
-#endif /* GNRC_PKT_H */
+#endif /* NET_GNRC_PKT_H */
 /** @} */

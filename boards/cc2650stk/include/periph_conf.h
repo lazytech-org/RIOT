@@ -26,7 +26,7 @@ extern "C" {
 #endif
 
 /**
- * @brief   Clock configuration
+ * @name    Clock configuration
  * @{
  */
 /* the main clock is fixed to 48MHZ */
@@ -34,28 +34,37 @@ extern "C" {
 /** @} */
 
 /**
- * @name   Timer configuration
+ * @name    Timer configuration
+ *
+ * General purpose timers (GPT[0-3]) are configured consecutively and in order
+ * (without gaps) starting from GPT0, i.e. if multiple timers are enabled.
+ *
  * @{
  */
 static const timer_conf_t timer_config[] = {
     {
-        .dev  = GPT0,
-        .num  = 0
+        .cfg = GPT_CFG_16T,
+        .chn = 2,
     },
     {
-        .dev  = GPT1,
-        .num  = 1
+        .cfg = GPT_CFG_32T,
+        .chn = 1,
+    },
+    {
+        .cfg = GPT_CFG_16T,
+        .chn = 2,
+    },
+    {
+        .cfg = GPT_CFG_32T,
+        .chn = 1,
     }
 };
-
-#define TIMER_0_ISR         isr_timer0_chan0
-#define TIMER_1_ISR         isr_timer1_chan0
 
 #define TIMER_NUMOF         (sizeof(timer_config) / sizeof(timer_config[0]))
 /** @} */
 
 /**
- * @name   UART configuration
+ * @name    UART configuration
  *
  * The used CC26x0 CPU only supports a single UART device, so all we need to
  * configure are the RX and TX pins.
@@ -67,6 +76,15 @@ static const timer_conf_t timer_config[] = {
 #define UART_NUMOF          (1)
 #define UART_RX_PIN         (28)
 #define UART_TX_PIN         (29)
+/** @} */
+
+/**
+ * @name    I2C configuration
+ * @{
+ */
+#define I2C_NUMOF           (1)
+#define I2C_SDA_PIN         (5)
+#define I2C_SCL_PIN         (6)
 /** @} */
 
 #ifdef __cplusplus

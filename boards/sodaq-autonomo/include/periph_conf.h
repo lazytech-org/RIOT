@@ -29,7 +29,7 @@ extern "C" {
 #endif
 
 /**
- * @brief   External oscillator and clock configuration
+ * @name    External oscillator and clock configuration
  *
  * For selection of the used CORECLOCK, we have implemented two choices:
  *
@@ -76,7 +76,7 @@ extern "C" {
 /** @} */
 
 /**
- * @name Timer peripheral configuration
+ * @name    Timer peripheral configuration
  * @{
  */
 #define TIMER_NUMOF         (2U)
@@ -97,43 +97,51 @@ extern "C" {
 /** @} */
 
 /**
- * @name UART configuration
+ * @name    UART configuration
  * @{
  * See Table 6.1 of the SAM D21 Datasheet
  */
 static const uart_conf_t uart_config[] = {
     {
-        .dev    = &SERCOM0->USART,
-        .rx_pin = GPIO_PIN(PA,9),
-        .tx_pin = GPIO_PIN(PA,10),
-        .mux    = GPIO_MUX_C,
-        .rx_pad = UART_PAD_RX_1,
-        .tx_pad = UART_PAD_TX_2,
+        .dev      = &SERCOM0->USART,
+        .rx_pin   = GPIO_PIN(PA,9),
+        .tx_pin   = GPIO_PIN(PA,10),
+        .mux      = GPIO_MUX_C,
+        .rx_pad   = UART_PAD_RX_1,
+        .tx_pad   = UART_PAD_TX_2,
+        .flags    = UART_FLAG_NONE,
+        .gclk_src = GCLK_CLKCTRL_GEN_GCLK0
     },
     {
-        .dev    = &SERCOM5->USART,
-        .rx_pin = GPIO_PIN(PB,31),
-        .tx_pin = GPIO_PIN(PB,30),
-        .mux    = GPIO_MUX_D,
-        .rx_pad = UART_PAD_RX_1,
-        .tx_pad = UART_PAD_TX_0_RTS_2_CTS_3,
+        .dev      = &SERCOM5->USART,
+        .rx_pin   = GPIO_PIN(PB,31),
+        .tx_pin   = GPIO_PIN(PB,30),
+        .mux      = GPIO_MUX_D,
+        .rx_pad   = UART_PAD_RX_1,
+        .tx_pad   = UART_PAD_TX_0_RTS_2_CTS_3,
+        .flags    = UART_FLAG_NONE,
+        .gclk_src = GCLK_CLKCTRL_GEN_GCLK0
     },
     {
-        .dev    = &SERCOM4->USART,
-        .rx_pin = GPIO_PIN(PB,13),
-        .tx_pin = GPIO_PIN(PA,14),
-        .mux    = GPIO_MUX_C,
-        .rx_pad = UART_PAD_RX_1,
-        .tx_pad = UART_PAD_TX_2,
+        .dev      = &SERCOM4->USART,
+        .rx_pin   = GPIO_PIN(PB,13),
+        .tx_pin   = GPIO_PIN(PB,14),
+        .mux      = GPIO_MUX_C,
+        .rx_pad   = UART_PAD_RX_1,
+        .tx_pad   = UART_PAD_TX_2,
+        .flags    = UART_FLAG_NONE,
+        .gclk_src = GCLK_CLKCTRL_GEN_GCLK0
     },
     {
-        .dev    = &SERCOM1->USART,
-        .rx_pin = GPIO_PIN(PA,17),
-        .tx_pin = GPIO_PIN(PA,18),
-        .mux    = GPIO_MUX_C,
-        .rx_pad = UART_PAD_RX_1,
-        .tx_pad = UART_PAD_TX_2,
-    }
+        .dev      = &SERCOM1->USART,
+        .rx_pin   = GPIO_PIN(PA,17),
+        .tx_pin   = GPIO_PIN(PA,18),
+        .mux      = GPIO_MUX_C,
+        .rx_pad   = UART_PAD_RX_1,
+        .tx_pad   = UART_PAD_TX_2,
+        .flags    = UART_FLAG_NONE,
+        .gclk_src = GCLK_CLKCTRL_GEN_GCLK0
+    },
 };
 
 /* interrupt function name mapping */
@@ -146,7 +154,7 @@ static const uart_conf_t uart_config[] = {
 /** @} */
 
 /**
- * @name PWM configuration
+ * @name    PWM configuration
  * @{
  */
 #define PWM_0_EN            1
@@ -181,7 +189,7 @@ static const pwm_conf_t pwm_config[] = {
 /** @} */
 
 /**
- * @name SPI configuration
+ * @name    SPI configuration
  * @{
  */
 static const spi_conf_t spi_config[] = {
@@ -202,29 +210,25 @@ static const spi_conf_t spi_config[] = {
 /** @} */
 
 /**
- * @name I2C configuration
+ * @name    I2C configuration
  * @{
  */
-#define I2C_NUMOF           (1U)
-#define I2C_0_EN            1
-#define I2C_1_EN            0
-#define I2C_2_EN            0
-#define I2C_3_EN            0
-#define I2C_IRQ_PRIO        1
-
-#define I2C_0_DEV           SERCOM2->I2CM
-#define I2C_0_IRQ           SERCOM2_IRQn
-#define I2C_0_ISR           isr_sercom2
-/* I2C 0 GCLK */
-#define I2C_0_GCLK_ID       SERCOM2_GCLK_ID_CORE
-#define I2C_0_GCLK_ID_SLOW  SERCOM2_GCLK_ID_SLOW
-/* I2C 0 pin configuration */
-#define I2C_0_SDA           GPIO_PIN(PA, 12)
-#define I2C_0_SCL           GPIO_PIN(PA, 13)
-#define I2C_0_MUX           GPIO_MUX_C
+static const i2c_conf_t i2c_config[] = {
+    {
+        .dev      = &(SERCOM2->I2CM),
+        .speed    = I2C_SPEED_NORMAL,
+        .scl_pin  = GPIO_PIN(PA, 13),
+        .sda_pin  = GPIO_PIN(PA, 12),
+        .mux      = GPIO_MUX_C,
+        .gclk_src = GCLK_CLKCTRL_GEN_GCLK0,
+        .flags    = I2C_FLAG_NONE
+     }
+};
+#define I2C_NUMOF          (sizeof(i2c_config) / sizeof(i2c_config[0]))
+/** @} */
 
 /**
- * @name RTC configuration
+ * @name    RTC configuration
  * @{
  */
 #define RTC_NUMOF          (1U)
@@ -232,7 +236,7 @@ static const spi_conf_t spi_config[] = {
 /** @} */
 
 /**
- * @name RTT configuration
+ * @name    RTT configuration
  * @{
  */
 #define RTT_NUMOF          (1U)

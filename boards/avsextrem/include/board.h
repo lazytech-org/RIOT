@@ -9,9 +9,7 @@
 
 
 /**
- * @defgroup    boards_avsextrem Avsextrem
- * @ingroup     boards
- * @brief       Support for the Avsextrem board
+ * @ingroup     boards_avsextrem
  * @{
  *
  * @file
@@ -22,8 +20,8 @@
  */
 
 
-#ifndef BOARDCONF_H
-#define BOARDCONF_H
+#ifndef BOARD_H
+#define BOARD_H
 #include "bitarithm.h"
 #include "msba2_common.h"
 
@@ -32,7 +30,7 @@ extern "C" {
 #endif
 
 /**
- * @brief   LED pin definitions and handlers
+ * @name    LED pin definitions and handlers
  * @{
  */
 #define LED0_PIN            GPIO_PIN(2, 25)
@@ -51,7 +49,7 @@ extern "C" {
 /** @} */
 
 /**
- * @brief Initialize the board's clock system
+ * @brief   Initialize the board's clock system
  */
 void init_clks1(void);
 
@@ -60,4 +58,4 @@ void init_clks1(void);
 #endif
 
 /** @} */
-#endif /* BOARDCONF_H */
+#endif /* BOARD_H */

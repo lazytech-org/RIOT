@@ -1,7 +1,7 @@
-APPLICATION = thread_msg_seq
 include ../Makefile.tests_common
 
-BOARD_INSUFFICIENT_MEMORY := stm32f0discovery nucleo32-f042
+BOARD_INSUFFICIENT_MEMORY := arduino-duemilanove arduino-nano arduino-uno \
+                             nucleo-f031k6 nucleo-f042k6
 
 DISABLE_MODULE += auto_init
 

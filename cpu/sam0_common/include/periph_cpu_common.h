@@ -8,16 +8,18 @@
 
 /**
  * @ingroup         cpu_sam0_common
+ * @brief           Common CPU specific definitions for all SAMx21 based CPUs
  * @{
  *
  * @file
  * @brief           Common CPU specific definitions for all SAMx21 based CPUs
  *
  * @author          Hauke Petersen <hauke.petersen@fu-berlin.de>
+ * @author          Dylan Laduranty <dylan.laduranty@mesotic.com>
  */
 
-#ifndef CPU_PERIPH_COMMON_H
-#define CPU_PERIPH_COMMON_H
+#ifndef PERIPH_CPU_COMMON_H
+#define PERIPH_CPU_COMMON_H
 
 #include "cpu.h"
 
@@ -41,6 +43,16 @@ extern "C" {
 /** @} */
 
 /**
+ * @name   Use shared I2C functions
+ * @{
+ */
+#define PERIPH_I2C_NEED_READ_REG
+#define PERIPH_I2C_NEED_READ_REGS
+#define PERIPH_I2C_NEED_WRITE_REG
+#define PERIPH_I2C_NEED_WRITE_REGS
+/** @} */
+
+/**
  * @brief   Override GPIO type
  * @{
  */
@@ -57,9 +69,56 @@ typedef uint32_t gpio_t;
  * @brief   Macro for accessing GPIO pins
  * @{
  */
+#ifdef CPU_FAM_SAML11
+#define GPIO_PIN(x, y)      (((gpio_t)(&PORT_SEC->Group[x])) | y)
+#else
 #define GPIO_PIN(x, y)      (((gpio_t)(&PORT->Group[x])) | y)
+#endif
+
+/**
+ * @brief   Available ports on the SAMD21 & SAML21
+ */
+enum {
+    PA = 0,                 /**< port A */
+    PB = 1,                 /**< port B */
+    PC = 2,                 /**< port C */
+};
+
+/**
+ * @brief   Generate GPIO mode bitfields
+ *
+ * We use 3 bit to determine the pin functions:
+ * - bit 0: PD(0) or PU(1)
+ * - bit 1: input enable
+ * - bit 2: pull enable
+ */
+#define GPIO_MODE(pr, ie, pe)   (pr | (ie << 1) | (pe << 2))
+
+/**
+ * @name    Power mode configuration
+ * @{
+ */
+#ifdef CPU_FAM_SAML11
+#define PM_NUM_MODES        (2)
+#else
+#define PM_NUM_MODES        (3)
+#endif
+/** @} */
 
 #ifndef DOXYGEN
+/**
+ * @brief   Override GPIO modes
+ */
+#define HAVE_GPIO_MODE_T
+typedef enum {
+    GPIO_IN    = GPIO_MODE(0, 1, 0),    /**< IN */
+    GPIO_IN_PD = GPIO_MODE(0, 1, 1),    /**< IN with pull-down */
+    GPIO_IN_PU = GPIO_MODE(1, 1, 1),    /**< IN with pull-up */
+    GPIO_OUT   = GPIO_MODE(0, 0, 0),    /**< OUT (push-pull) */
+    GPIO_OD    = 0xfe,                  /**< not supported by HW */
+    GPIO_OD_PU = 0xff                   /**< not supported by HW */
+} gpio_mode_t;
+
 /**
  * @brief   Override active flank configuration values
  * @{
@@ -76,6 +135,7 @@ typedef enum {
 /**
  * @brief   Available MUX values for configuring a pin's alternate function
  */
+#ifndef SAM_MUX_T
 typedef enum {
     GPIO_MUX_A = 0x0,       /**< select peripheral function A */
     GPIO_MUX_B = 0x1,       /**< select peripheral function B */
@@ -86,6 +146,7 @@ typedef enum {
     GPIO_MUX_G = 0x6,       /**< select peripheral function G */
     GPIO_MUX_H = 0x7,       /**< select peripheral function H */
 } gpio_mux_t;
+#endif
 
 /**
  * @brief   Available values for SERCOM UART RX pad selection
@@ -106,6 +167,29 @@ typedef enum {
     UART_PAD_TX_0_RTS_2_CTS_3 = 0x2,    /**< TX is pad 0, on top RTS on pad 2
                                          *   and CTS on pad 3 */
 } uart_txpad_t;
+
+/**
+ * @brief   Available SERCOM UART flag selections
+ */
+typedef enum {
+    UART_FLAG_NONE            = 0x0,    /**< No flags set */
+    UART_FLAG_RUN_STANDBY     = 0x1,    /**< run SERCOM in standby mode */
+    UART_FLAG_WAKEUP          = 0x2,    /**< wake from sleep on receive */
+} uart_flag_t;
+
+/**
+ * @brief   UART device configuration
+ */
+typedef struct {
+    SercomUsart *dev;       /**< pointer to the used UART device */
+    gpio_t rx_pin;          /**< pin used for RX */
+    gpio_t tx_pin;          /**< pin used for TX */
+    gpio_mux_t mux;         /**< alternative function for pins */
+    uart_rxpad_t rx_pad;    /**< pad selection for RX line */
+    uart_txpad_t tx_pad;    /**< pad selection for TX line */
+    uart_flag_t flags;      /**< set optional SERCOM flags */
+    uint32_t gclk_src;      /**< GCLK source which supplys SERCOM */
+} uart_conf_t;
 
 /**
  * @brief   Available values for SERCOM SPI MISO pad selection
@@ -168,6 +252,42 @@ typedef struct {
     spi_misopad_t miso_pad; /**< pad to use for MISO line */
     spi_mosipad_t mosi_pad; /**< pad to use for MOSI and CLK line */
 } spi_conf_t;
+/** @} */
+
+/**
+ * @brief   Available SERCOM I2C flag selections
+ */
+typedef enum {
+    I2C_FLAG_NONE            = 0x0,    /**< No flags set */
+    I2C_FLAG_RUN_STANDBY     = 0x1,    /**< run SERCOM in standby mode */
+} i2c_flag_t;
+
+/**
+ * @name    Override I2C clock speed values
+ * @{
+ */
+#define HAVE_I2C_SPEED_T
+typedef enum {
+    I2C_SPEED_LOW       = 10000U,      /**< low speed mode:    ~10kbit/s */
+    I2C_SPEED_NORMAL    = 100000U,     /**< normal mode:       ~100kbit/s */
+    I2C_SPEED_FAST      = 400000U,     /**< fast mode:         ~400kbit/s */
+    I2C_SPEED_FAST_PLUS = 1000000U,    /**< fast plus mode:    ~1Mbit/s */
+    I2C_SPEED_HIGH      = 3400000U,    /**< high speed mode:   ~3.4Mbit/s */
+} i2c_speed_t;
+/** @} */
+
+/**
+ * @brief   I2C device configuration
+ */
+typedef struct {
+    SercomI2cm *dev;        /**< pointer to the used I2C device */
+    i2c_speed_t speed;      /**< baudrate used for the bus */
+    gpio_t scl_pin;         /**< used SCL pin */
+    gpio_t sda_pin;         /**< used MOSI pin */
+    gpio_mux_t mux;         /**< alternate function (mux) */
+    uint8_t gclk_src;       /**< GCLK source which supplys SERCOM */
+    uint8_t flags;          /**< allow SERCOM to run in standby mode */
+} i2c_conf_t;
 
 /**
  * @brief   Set up alternate function (PMUX setting) for a PORT pin
@@ -186,12 +306,107 @@ void gpio_init_mux(gpio_t pin, gpio_mux_t mux);
  */
 static inline int sercom_id(void *sercom)
 {
+#if defined(CPU_FAM_SAMD21)
     return ((((uint32_t)sercom) >> 10) & 0x7) - 2;
+#elif defined (CPU_FAM_SAML10) || defined (CPU_FAM_SAML11)
+    return ((((uint32_t)sercom) >> 10) & 0x7) - 1;
+#elif defined(CPU_FAM_SAML21) || defined(CPU_FAM_SAMR30)
+    /* Left side handles SERCOM0-4 while right side handles unaligned address of SERCOM5 */
+    return ((((uint32_t)sercom) >> 10) & 0x7) + ((((uint32_t)sercom) >> 22) & 0x04);
+#endif
 }
+
+/**
+ * @brief   Enable peripheral clock for given SERCOM device
+ *
+ * @param[in] sercom    SERCOM device
+ */
+static inline void sercom_clk_en(void *sercom)
+{
+#if defined(CPU_FAM_SAMD21)
+    PM->APBCMASK.reg |= (PM_APBCMASK_SERCOM0 << sercom_id(sercom));
+#else
+    if (sercom_id(sercom) < 5) {
+        MCLK->APBCMASK.reg |= (MCLK_APBCMASK_SERCOM0 << sercom_id(sercom));
+    }
+#if defined(CPU_FAM_SAML21)
+    else {
+        MCLK->APBDMASK.reg |= (MCLK_APBDMASK_SERCOM5);
+    }
+#endif /* CPU_FAM_SAML21 */
+#endif
+}
+
+/**
+ * @brief   Disable peripheral clock for given SERCOM device
+ *
+ * @param[in] sercom    SERCOM device
+ */
+static inline void sercom_clk_dis(void *sercom)
+{
+#if defined(CPU_FAM_SAMD21)
+    PM->APBCMASK.reg &= ~(PM_APBCMASK_SERCOM0 << sercom_id(sercom));
+#else
+    if (sercom_id(sercom) < 5) {
+        MCLK->APBCMASK.reg &= ~(MCLK_APBCMASK_SERCOM0 << sercom_id(sercom));
+    }
+#if defined (CPU_FAM_SAML21)
+    else {
+        MCLK->APBDMASK.reg &= ~(MCLK_APBDMASK_SERCOM5);
+    }
+#endif /* CPU_FAM_SAML21 */
+#endif
+}
+
+/**
+ * @brief   Configure generator clock for given SERCOM device
+ *
+ * @param[in] sercom    SERCOM device
+ * @param[in] gclk      Generator clock
+ */
+static inline void sercom_set_gen(void *sercom, uint32_t gclk)
+{
+#if defined(CPU_FAM_SAMD21)
+    GCLK->CLKCTRL.reg = (GCLK_CLKCTRL_CLKEN | gclk |
+                         (SERCOM0_GCLK_ID_CORE + sercom_id(sercom)));
+    while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY) {}
+#else
+    if (sercom_id(sercom) < 5) {
+        GCLK->PCHCTRL[SERCOM0_GCLK_ID_CORE + sercom_id(sercom)].reg =
+                                                    (GCLK_PCHCTRL_CHEN | gclk);
+    }
+#if defined(CPU_FAM_SAML21)
+    else {
+        GCLK->PCHCTRL[SERCOM5_GCLK_ID_CORE].reg =
+                                                    (GCLK_PCHCTRL_CHEN | gclk);
+    }
+#endif /* CPU_FAM_SAML21 */
+#endif
+}
+
+/**
+ * @brief ADC Channel Configuration
+ */
+typedef struct {
+    gpio_t pin;            /**< ADC channel pin */
+    uint32_t muxpos;       /**< ADC channel pin multiplexer value */
+} adc_conf_chan_t;
+
+/**
+ * @brief USB peripheral parameters
+ */
+#if defined(USB_INST_NUM) || defined(DOXYGEN)
+typedef struct {
+    gpio_t dm;              /**< D- line gpio                           */
+    gpio_t dp;              /**< D+ line gpio                           */
+    gpio_mux_t d_mux;       /**< alternate function (mux) for data pins */
+    UsbDevice *device;      /**< ptr to the device registers            */
+} sam0_common_usb_config_t;
+#endif /* USB_INST_NUM */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CPU_PERIPH_COMMON_H */
+#endif /* PERIPH_CPU_COMMON_H */
 /** @} */

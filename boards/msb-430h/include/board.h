@@ -7,9 +7,7 @@
  */
 
 /**
- * @defgroup    boards_msb430h MSB-430H
- * @ingroup     boards
- * @brief       Support for the ScatterWeb MSB-430H board
+ * @ingroup     boards_msb430h
  * @{
  *
  * @file
@@ -19,8 +17,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef MSB_BOARD_H
-#define MSB_BOARD_H
+#ifndef BOARD_H
+#define BOARD_H
 
 #include "board_common.h"
 
@@ -36,11 +34,10 @@ extern "C" {
 #endif
 
 /**
- * @brief   CPU core configuration
- *
- * @todo    Move this to the periph_conf.h
+ * @name    CPU core configuration
  * @{
  */
+/** @todo   Move this to the periph_conf.h */
 #define MSP430_INITIAL_CPU_SPEED    7372800uL
 #define F_CPU                       MSP430_INITIAL_CPU_SPEED
 #define F_RC_OSCILLATOR             32768
@@ -48,9 +45,17 @@ extern "C" {
 #define MSP430_HAS_EXTERNAL_CRYSTAL 1
 /** @} */
 
+/**
+ * @name   Configure on-board SHT11 device
+ * @{
+ */
+#define SHT1X_PARAM_CLK             (GPIO_PIN(3, 5))
+#define SHT1X_PARAM_DATA            (GPIO_PIN(3, 4))
+/** @} */
+
 #ifdef __cplusplus
 }
 #endif
 
 /** @} */
-#endif /* MSB_BOARD_H */
+#endif /* BOARD_H */

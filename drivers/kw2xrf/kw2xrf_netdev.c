@@ -1,5 +1,7 @@
 /*
  * Copyright (C) 2016 Phytec Messtechnik GmbH
+                 2017 HAW Hamburg
+                 2017 SKF AB
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -13,7 +15,9 @@
  * @file
  * @brief       Netdev interface for kw2xrf drivers
  *
- * @author      Johann Fischer <j.fischer@phytec.de>
+ * @author      Johann Fischer  <j.fischer@phytec.de>
+ * @author      Peter Kietzmann <peter.kietzmann@haw-hamburg.de>
+ * @author      Joakim Nohlgård <joakim.nohlgard@eistec.se>
  */
 
 #include <string.h>
@@ -21,10 +25,11 @@
 #include <errno.h>
 
 #include "log.h"
+#include "thread_flags.h"
 #include "net/eui64.h"
 #include "net/ieee802154.h"
-#include "net/netdev2.h"
-#include "net/netdev2/ieee802154.h"
+#include "net/netdev.h"
+#include "net/netdev/ieee802154.h"
 
 #include "kw2xrf.h"
 #include "kw2xrf_spi.h"
@@ -37,34 +42,44 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-#define _MAX_MHR_OVERHEAD           (25)
-
 #define _MACACKWAITDURATION         (864 / 16) /* 864us * 62500Hz */
 
+#define KW2XRF_THREAD_FLAG_ISR      (1 << 8)
+
+static volatile unsigned int num_irqs_queued = 0;
+static volatile unsigned int num_irqs_handled = 0;
+static unsigned int spinning_for_irq = 0;
 static uint8_t _send_last_fcf;
+
+static void _isr(netdev_t *netdev);
 
 static void _irq_handler(void *arg)
 {
-    netdev2_t *dev = (netdev2_t *) arg;
+    netdev_t *netdev = (netdev_t *) arg;
+    kw2xrf_t *dev = (kw2xrf_t *)netdev;
 
-    if (dev->event_callback) {
-        dev->event_callback(dev, NETDEV2_EVENT_ISR);
+    thread_flags_set(dev->thread, KW2XRF_THREAD_FLAG_ISR);
+
+    /* We use this counter to avoid filling the message queue with redundant ISR events */
+    if (num_irqs_queued == num_irqs_handled) {
+        ++num_irqs_queued;
+        if (netdev->event_callback) {
+            netdev->event_callback(netdev, NETDEV_EVENT_ISR);
+        }
     }
 }
 
-static int _init(netdev2_t *netdev)
+static int _init(netdev_t *netdev)
 {
     kw2xrf_t *dev = (kw2xrf_t *)netdev;
 
-    /* initialise SPI and GPIOs */
+    dev->thread = (thread_t *)thread_get(thread_getpid());
+
+    /* initialize SPI and GPIOs */
     if (kw2xrf_init(dev, &_irq_handler)) {
         LOG_ERROR("[kw2xrf] unable to initialize device\n");
         return -1;
     }
-
-#ifdef MODULE_NETSTATS_L2
-    memset(&netdev->stats, 0, sizeof(netstats_t));
-#endif
 
     /* reset device to default values and put it into RX state */
     kw2xrf_reset_phy(dev);
@@ -82,7 +97,7 @@ static size_t kw2xrf_tx_load(uint8_t *pkt_buf, uint8_t *buf, size_t len, size_t 
 
 static void kw2xrf_tx_exec(kw2xrf_t *dev)
 {
-    if ((dev->netdev.flags & KW2XRF_OPT_AUTOACK) &&
+    if ((dev->netdev.flags & KW2XRF_OPT_ACK_REQ) &&
         (_send_last_fcf & IEEE802154_FCF_ACK_REQ)) {
         kw2xrf_set_sequence(dev, XCVSEQ_TX_RX);
     }
@@ -91,33 +106,54 @@ static void kw2xrf_tx_exec(kw2xrf_t *dev)
     }
 }
 
-static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
+static void kw2xrf_wait_idle(kw2xrf_t *dev)
+{
+    /* make sure any ongoing T or TR sequence is finished */
+    if (kw2xrf_can_switch_to_idle(dev) == 0) {
+        DEBUG("[kw2xrf] TX already in progress\n");
+        num_irqs_handled = num_irqs_queued;
+        spinning_for_irq = 1;
+        thread_flags_clear(KW2XRF_THREAD_FLAG_ISR);
+        while (1) {
+            /* TX in progress */
+            /* Handle any outstanding IRQ first */
+            _isr((netdev_t *)dev);
+            /* _isr() will switch the transceiver back to idle after
+             * handling the TX complete IRQ */
+            if (kw2xrf_can_switch_to_idle(dev)) {
+                break;
+            }
+            /* Block until we get another IRQ */
+            thread_flags_wait_any(KW2XRF_THREAD_FLAG_ISR);
+            DEBUG("[kw2xrf] waited ISR\n");
+        }
+        spinning_for_irq = 0;
+        DEBUG("[kw2xrf] previous TX done\n");
+    }
+}
+
+static int _send(netdev_t *netdev, const iolist_t *iolist)
 {
     kw2xrf_t *dev = (kw2xrf_t *)netdev;
-    const struct iovec *ptr = vector;
     uint8_t *pkt_buf = &(dev->buf[1]);
     size_t len = 0;
 
+    /* wait for ongoing transmissions to finish */
+    kw2xrf_wait_idle(dev);
+
     /* load packet data into buffer */
-    for (unsigned i = 0; i < count; i++, ptr++) {
+    for (const iolist_t *iol = iolist; iol; iol = iol->iol_next) {
         /* current packet data + FCS too long */
-        if ((len + ptr->iov_len + IEEE802154_FCS_LEN) > KW2XRF_MAX_PKT_LENGTH) {
+        if ((len + iol->iol_len + IEEE802154_FCS_LEN) > KW2XRF_MAX_PKT_LENGTH) {
             LOG_ERROR("[kw2xrf] packet too large (%u byte) to be send\n",
                   (unsigned)len + IEEE802154_FCS_LEN);
             return -EOVERFLOW;
         }
-        len = kw2xrf_tx_load(pkt_buf, ptr->iov_base, ptr->iov_len, len);
+        len = kw2xrf_tx_load(pkt_buf, iol->iol_base, iol->iol_len, len);
     }
 
-    /* make sure ongoing t or tr sequenz are finished */
-    if (kw2xrf_can_switch_to_idle(dev)) {
-        kw2xrf_set_sequence(dev, XCVSEQ_IDLE);
-        dev->pending_tx++;
-    }
-    else {
-        /* do not wait, this can lead to a dead lock */
-        return 0;
-    }
+    kw2xrf_set_sequence(dev, XCVSEQ_IDLE);
+    dev->pending_tx++;
 
     /*
      * Nbytes = FRAME_LEN - 2 -> FRAME_LEN = Nbytes + 2
@@ -129,9 +165,6 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     _send_last_fcf = dev->buf[1];
 
     kw2xrf_write_fifo(dev, dev->buf, dev->buf[0]);
-#ifdef MODULE_NETSTATS_L2
-    netdev->stats.tx_bytes += len;
-#endif
 
     /* send data out directly if pre-loading id disabled */
     if (!(dev->netdev.flags & KW2XRF_OPT_PRELOADING)) {
@@ -141,7 +174,7 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
     return (int)len;
 }
 
-static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
+static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
 {
     kw2xrf_t *dev = (kw2xrf_t *)netdev;
     size_t pkt_len = 0;
@@ -154,11 +187,6 @@ static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
         return pkt_len + 1;
     }
 
-#ifdef MODULE_NETSTATS_L2
-    netdev->stats.rx_count++;
-    netdev->stats.rx_bytes += pkt_len;
-#endif
-
     if (pkt_len > len) {
         /* not enough space in buf */
         return -ENOBUFS;
@@ -167,9 +195,9 @@ static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
     kw2xrf_read_fifo(dev, (uint8_t *)buf, pkt_len + 1);
 
     if (info != NULL) {
-        netdev2_ieee802154_rx_info_t *radio_info = info;
+        netdev_ieee802154_rx_info_t *radio_info = info;
         radio_info->lqi = ((uint8_t*)buf)[pkt_len];
-        radio_info->rssi = (uint8_t)kw2xrf_get_rssi(radio_info->lqi);
+        radio_info->rssi = kw2xrf_get_rssi(radio_info->lqi);
     }
 
     /* skip FCS and LQI */
@@ -197,6 +225,7 @@ static int _set_state(kw2xrf_t *dev, netopt_state_t state)
         case NETOPT_STATE_OFF:
             /* TODO: Replace with powerdown (set reset input low) */
             kw2xrf_set_power_mode(dev, KW2XRF_HIBERNATE);
+            break;
         default:
             return -ENOTSUP;
     }
@@ -208,7 +237,7 @@ static netopt_state_t _get_state(kw2xrf_t *dev)
     return dev->state;
 }
 
-int _get(netdev2_t *netdev, netopt_t opt, void *value, size_t len)
+int _get(netdev_t *netdev, netopt_t opt, void *value, size_t len)
 {
     kw2xrf_t *dev = (kw2xrf_t *)netdev;
 
@@ -217,13 +246,19 @@ int _get(netdev2_t *netdev, netopt_t opt, void *value, size_t len)
     }
 
     switch (opt) {
-        case NETOPT_MAX_PACKET_SIZE:
-            if (len < sizeof(int16_t)) {
+        case NETOPT_ADDRESS:
+            if (len < sizeof(uint16_t)) {
                 return -EOVERFLOW;
             }
-
-            *((uint16_t *)value) = KW2XRF_MAX_PKT_LENGTH - _MAX_MHR_OVERHEAD;
+            *((uint16_t *)value) = kw2xrf_get_addr_short(dev);
             return sizeof(uint16_t);
+
+        case NETOPT_ADDRESS_LONG:
+            if (len < sizeof(uint64_t)) {
+                return -EOVERFLOW;
+            }
+            *((uint64_t *)value) = kw2xrf_get_addr_long(dev);
+            return sizeof(uint64_t);
 
         case NETOPT_STATE:
             if (len < sizeof(netopt_state_t)) {
@@ -231,6 +266,16 @@ int _get(netdev2_t *netdev, netopt_t opt, void *value, size_t len)
             }
             *((netopt_state_t *)value) = _get_state(dev);
             return sizeof(netopt_state_t);
+
+        case NETOPT_AUTOACK:
+            if (dev->netdev.flags & KW2XRF_OPT_AUTOACK) {
+                *((netopt_enable_t *)value) = NETOPT_ENABLE;
+            }
+            else {
+                *((netopt_enable_t *)value) = NETOPT_DISABLE;
+            }
+            return sizeof(netopt_enable_t);
+
 
         case NETOPT_PRELOADING:
             if (dev->netdev.flags & KW2XRF_OPT_PRELOADING) {
@@ -275,6 +320,13 @@ int _get(netdev2_t *netdev, netopt_t opt, void *value, size_t len)
                 !!(dev->netdev.flags & KW2XRF_OPT_AUTOCCA);
             return sizeof(netopt_enable_t);
 
+        case NETOPT_CHANNEL:
+            if (len < sizeof(uint16_t)) {
+                return -EOVERFLOW;
+            }
+            *((uint16_t *)value) = kw2xrf_get_channel(dev);
+            return sizeof(uint16_t);
+
         case NETOPT_TX_POWER:
             if (len < sizeof(int16_t)) {
                 return -EOVERFLOW;
@@ -307,9 +359,9 @@ int _get(netdev2_t *netdev, netopt_t opt, void *value, size_t len)
             else {
                 *(uint8_t *)value = kw2xrf_get_cca_mode(dev);
                 switch (*((int8_t *)value)) {
-                    case NETDEV2_IEEE802154_CCA_MODE_1:
-                    case NETDEV2_IEEE802154_CCA_MODE_2:
-                    case NETDEV2_IEEE802154_CCA_MODE_3:
+                    case NETDEV_IEEE802154_CCA_MODE_1:
+                    case NETDEV_IEEE802154_CCA_MODE_2:
+                    case NETDEV_IEEE802154_CCA_MODE_3:
                         return sizeof(uint8_t);
                     default:
                         break;
@@ -323,10 +375,10 @@ int _get(netdev2_t *netdev, netopt_t opt, void *value, size_t len)
             break;
     }
 
-    return netdev2_ieee802154_get((netdev2_ieee802154_t *)netdev, opt, value, len);
+    return netdev_ieee802154_get((netdev_ieee802154_t *)netdev, opt, value, len);
 }
 
-static int _set(netdev2_t *netdev, netopt_t opt, void *value, size_t len)
+static int _set(netdev_t *netdev, netopt_t opt, const void *value, size_t len)
 {
     kw2xrf_t *dev = (kw2xrf_t *)netdev;
     int res = -ENOTSUP;
@@ -342,7 +394,7 @@ static int _set(netdev2_t *netdev, netopt_t opt, void *value, size_t len)
             }
             else {
                 kw2xrf_set_addr_short(dev, *((uint16_t *)value));
-                /* don't set res to set netdev2_ieee802154_t::short_addr */
+                res = sizeof(uint16_t);
             }
             break;
 
@@ -352,7 +404,7 @@ static int _set(netdev2_t *netdev, netopt_t opt, void *value, size_t len)
             }
             else {
                 kw2xrf_set_addr_long(dev, *((uint64_t *)value));
-                /* don't set res to set netdev2_ieee802154_t::short_addr */
+                res = sizeof(uint64_t);
             }
             break;
 
@@ -363,7 +415,7 @@ static int _set(netdev2_t *netdev, netopt_t opt, void *value, size_t len)
 
             else {
                 kw2xrf_set_pan(dev, *((uint16_t *)value));
-                /* don't set res to set netdev2_ieee802154_t::pan */
+                /* don't set res to set netdev_ieee802154_t::pan */
             }
             break;
 
@@ -377,8 +429,7 @@ static int _set(netdev2_t *netdev, netopt_t opt, void *value, size_t len)
                     res = -EINVAL;
                     break;
                 }
-                dev->netdev.chan = chan;
-                /* don't set res to set netdev2_ieee802154_t::chan */
+                res = sizeof(uint16_t);
             }
             break;
 
@@ -409,6 +460,7 @@ static int _set(netdev2_t *netdev, netopt_t opt, void *value, size_t len)
             /* Set up HW generated automatic ACK after Receive */
             kw2xrf_set_option(dev, KW2XRF_OPT_AUTOACK,
                               ((bool *)value)[0]);
+            res = sizeof(netopt_enable_t);
             break;
 
         case NETOPT_ACK_REQ:
@@ -474,15 +526,15 @@ static int _set(netdev2_t *netdev, netopt_t opt, void *value, size_t len)
             }
             else {
                 switch (*((int8_t*)value)) {
-                    case NETDEV2_IEEE802154_CCA_MODE_1:
-                    case NETDEV2_IEEE802154_CCA_MODE_2:
-                    case NETDEV2_IEEE802154_CCA_MODE_3:
+                    case NETDEV_IEEE802154_CCA_MODE_1:
+                    case NETDEV_IEEE802154_CCA_MODE_2:
+                    case NETDEV_IEEE802154_CCA_MODE_3:
                         kw2xrf_set_cca_mode(dev, *((int8_t*)value));
                         res = sizeof(uint8_t);
                         break;
-                    case NETDEV2_IEEE802154_CCA_MODE_4:
-                    case NETDEV2_IEEE802154_CCA_MODE_5:
-                    case NETDEV2_IEEE802154_CCA_MODE_6:
+                    case NETDEV_IEEE802154_CCA_MODE_4:
+                    case NETDEV_IEEE802154_CCA_MODE_5:
+                    case NETDEV_IEEE802154_CCA_MODE_6:
                     default:
                         break;
                 }
@@ -506,14 +558,14 @@ static int _set(netdev2_t *netdev, netopt_t opt, void *value, size_t len)
     }
 
     if (res == -ENOTSUP) {
-        res = netdev2_ieee802154_set((netdev2_ieee802154_t *)netdev, opt,
+        res = netdev_ieee802154_set((netdev_ieee802154_t *)netdev, opt,
                                      value, len);
     }
 
     return res;
 }
 
-static void _isr_event_seq_r(netdev2_t *netdev, uint8_t *dregs)
+static void _isr_event_seq_r(netdev_t *netdev, uint8_t *dregs)
 {
     kw2xrf_t *dev = (kw2xrf_t *)netdev;
     uint8_t irqsts1 = 0;
@@ -521,14 +573,14 @@ static void _isr_event_seq_r(netdev2_t *netdev, uint8_t *dregs)
     if (dregs[MKW2XDM_IRQSTS1] & MKW2XDM_IRQSTS1_RXWTRMRKIRQ) {
         DEBUG("[kw2xrf] got RXWTRMRKIRQ\n");
         irqsts1 |= MKW2XDM_IRQSTS1_RXWTRMRKIRQ;
-        netdev->event_callback(netdev, NETDEV2_EVENT_RX_STARTED);
+        netdev->event_callback(netdev, NETDEV_EVENT_RX_STARTED);
     }
 
     if (dregs[MKW2XDM_IRQSTS1] & MKW2XDM_IRQSTS1_RXIRQ) {
         DEBUG("[kw2xrf] finished RXSEQ\n");
         dev->state = NETOPT_STATE_RX;
         irqsts1 |= MKW2XDM_IRQSTS1_RXIRQ;
-        netdev->event_callback(netdev, NETDEV2_EVENT_RX_COMPLETE);
+        netdev->event_callback(netdev, NETDEV_EVENT_RX_COMPLETE);
         if (dregs[MKW2XDM_PHY_CTRL1] & MKW2XDM_PHY_CTRL1_AUTOACK) {
             DEBUG("[kw2xrf]: perform TX ACK\n");
         }
@@ -549,7 +601,7 @@ static void _isr_event_seq_r(netdev2_t *netdev, uint8_t *dregs)
     dregs[MKW2XDM_IRQSTS1] &= ~irqsts1;
 }
 
-static void _isr_event_seq_t(netdev2_t *netdev, uint8_t *dregs)
+static void _isr_event_seq_t(netdev_t *netdev, uint8_t *dregs)
 {
     kw2xrf_t *dev = (kw2xrf_t *)netdev;
     uint8_t irqsts1 = 0;
@@ -567,10 +619,10 @@ static void _isr_event_seq_t(netdev2_t *netdev, uint8_t *dregs)
             irqsts1 |= MKW2XDM_IRQSTS1_CCAIRQ;
             if (dregs[MKW2XDM_IRQSTS2] & MKW2XDM_IRQSTS2_CCA) {
                 DEBUG("[kw2xrf] CCA CH busy\n");
-                netdev->event_callback(netdev, NETDEV2_EVENT_TX_MEDIUM_BUSY);
+                netdev->event_callback(netdev, NETDEV_EVENT_TX_MEDIUM_BUSY);
             }
             else {
-                netdev->event_callback(netdev, NETDEV2_EVENT_TX_COMPLETE);
+                netdev->event_callback(netdev, NETDEV_EVENT_TX_COMPLETE);
             }
         }
 
@@ -584,7 +636,7 @@ static void _isr_event_seq_t(netdev2_t *netdev, uint8_t *dregs)
 }
 
 /* Standalone CCA */
-static void _isr_event_seq_cca(netdev2_t *netdev, uint8_t *dregs)
+static void _isr_event_seq_cca(netdev_t *netdev, uint8_t *dregs)
 {
     kw2xrf_t *dev = (kw2xrf_t *)netdev;
     uint8_t irqsts1 = 0;
@@ -604,7 +656,7 @@ static void _isr_event_seq_cca(netdev2_t *netdev, uint8_t *dregs)
     dregs[MKW2XDM_IRQSTS1] &= ~irqsts1;
 }
 
-static void _isr_event_seq_tr(netdev2_t *netdev, uint8_t *dregs)
+static void _isr_event_seq_tr(netdev_t *netdev, uint8_t *dregs)
 {
     kw2xrf_t *dev = (kw2xrf_t *)netdev;
     uint8_t irqsts1 = 0;
@@ -638,7 +690,7 @@ static void _isr_event_seq_tr(netdev2_t *netdev, uint8_t *dregs)
             irqsts1 |= MKW2XDM_IRQSTS1_CCAIRQ;
             if (dregs[MKW2XDM_IRQSTS2] & MKW2XDM_IRQSTS2_CCA) {
                 DEBUG("[kw2xrf] CCA CH busy\n");
-                netdev->event_callback(netdev, NETDEV2_EVENT_TX_MEDIUM_BUSY);
+                netdev->event_callback(netdev, NETDEV_EVENT_TX_MEDIUM_BUSY);
             }
         }
 
@@ -646,7 +698,7 @@ static void _isr_event_seq_tr(netdev2_t *netdev, uint8_t *dregs)
         irqsts1 |= MKW2XDM_IRQSTS1_SEQIRQ;
         assert(dev->pending_tx != 0);
         dev->pending_tx--;
-        netdev->event_callback(netdev, NETDEV2_EVENT_TX_COMPLETE);
+        netdev->event_callback(netdev, NETDEV_EVENT_TX_COMPLETE);
         kw2xrf_seq_timeout_off(dev);
         kw2xrf_set_idle_sequence(dev);
     }
@@ -654,7 +706,7 @@ static void _isr_event_seq_tr(netdev2_t *netdev, uint8_t *dregs)
         DEBUG("[kw2xrf] TC4TMOUT, no SEQIRQ, TX failed\n");
         assert(dev->pending_tx != 0);
         dev->pending_tx--;
-        netdev->event_callback(netdev, NETDEV2_EVENT_TX_NOACK);
+        netdev->event_callback(netdev, NETDEV_EVENT_TX_NOACK);
         kw2xrf_seq_timeout_off(dev);
         kw2xrf_set_sequence(dev, dev->idle_state);
     }
@@ -663,7 +715,7 @@ static void _isr_event_seq_tr(netdev2_t *netdev, uint8_t *dregs)
     dregs[MKW2XDM_IRQSTS1] &= ~irqsts1;
 }
 
-static void _isr_event_seq_ccca(netdev2_t *netdev, uint8_t *dregs)
+static void _isr_event_seq_ccca(netdev_t *netdev, uint8_t *dregs)
 {
     kw2xrf_t *dev = (kw2xrf_t *)netdev;
     uint8_t irqsts1 = 0;
@@ -685,10 +737,13 @@ static void _isr_event_seq_ccca(netdev2_t *netdev, uint8_t *dregs)
     dregs[MKW2XDM_IRQSTS1] &= ~irqsts1;
 }
 
-static void _isr(netdev2_t *netdev)
+static void _isr(netdev_t *netdev)
 {
     uint8_t dregs[MKW2XDM_PHY_CTRL4 + 1];
     kw2xrf_t *dev = (kw2xrf_t *)netdev;
+    if (!spinning_for_irq) {
+        num_irqs_handled = num_irqs_queued;
+    }
 
     kw2xrf_read_dregs(dev, MKW2XDM_IRQSTS1, dregs, MKW2XDM_PHY_CTRL4 + 1);
     kw2xrf_mask_irq_b(dev);
@@ -754,7 +809,7 @@ static void _isr(netdev2_t *netdev)
     kw2xrf_enable_irq_b(dev);
 }
 
-const netdev2_driver_t kw2xrf_driver = {
+const netdev_driver_t kw2xrf_driver = {
     .init = _init,
     .send = _send,
     .recv = _recv,

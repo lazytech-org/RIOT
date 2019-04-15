@@ -13,7 +13,7 @@
 /---------------------------------------------------------------------------*/
 
 #include <string.h>
-#include "lpc23xx.h"
+#include "cpu.h"
 #include "VIC.h"
 #include "xtimer.h"
 #include "diskio.h"
@@ -380,6 +380,8 @@ static int send_cmd(unsigned int idx, unsigned long arg, unsigned int rt, unsign
 {
     unsigned int s, mc;
 
+    assert(buff != NULL);
+
     if (idx & 0x80) {               /* Send a CMD55 prior to the specified command if it is ACMD class */
         if (!send_cmd(CMD55, (unsigned long)CardRCA << 16, 1, buff) /* When CMD55 is faild, */
            || !(buff[0] & 0x00000020)) {
@@ -533,7 +535,7 @@ diskio_sta_t mci_initialize(void)
     //for (Timer[0] = 2; Timer[0]; );
     xtimer_usleep(250);
 
-    send_cmd(CMD0, 0, 0, NULL);             /* Enter idle state */
+    send_cmd(CMD0, 0, 0, resp);             /* Enter idle state */
     CardRCA = 0;
 
     /*---- Card is 'idle' state ----*/
@@ -576,7 +578,8 @@ diskio_sta_t mci_initialize(void)
 
             /* This loop will take a time. Insert wai_tsk(1) here for multitask envilonment. */
             if (xtimer_now_usec() > (start + 1000000/* !Timer[0] */)) {
-                DEBUG("now: %lu, started at: %lu\n", xtimer_now_usec(), start);
+                DEBUG("now: %" PRIu32 ", started at: %" PRIu32 "\n",
+                      xtimer_now_usec(), start);
                 DEBUG("%s, %d: Timeout #2\n", RIOT_FILE_RELATIVE, __LINE__);
                 goto di_fail;
             }

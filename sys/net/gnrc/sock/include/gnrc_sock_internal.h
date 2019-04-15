@@ -24,6 +24,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 #include "mbox.h"
 #include "net/af.h"
 #include "net/gnrc.h"
@@ -38,11 +39,23 @@ extern "C" {
 #endif
 
 /**
- * @brief   Default port range for dynamic source port allocation
+ * @brief   Minimum port number in the dynamic portrange
  */
 #define GNRC_SOCK_DYN_PORTRANGE_MIN (IANA_DYNAMIC_PORTRANGE_MIN)
+/**
+ * @brief   Maximum port number in the dynamic portrange
+ */
 #define GNRC_SOCK_DYN_PORTRANGE_MAX (IANA_DYNAMIC_PORTRANGE_MAX)
+
+/**
+ * @brief   Available ports in the range for dynamic source port allocation
+ */
 #define GNRC_SOCK_DYN_PORTRANGE_NUM (GNRC_SOCK_DYN_PORTRANGE_MAX - GNRC_SOCK_DYN_PORTRANGE_MIN + 1)
+
+/**
+ * @brief   Error value indicating that no free port could be found in the
+ *          dynamic port range
+ */
 #define GNRC_SOCK_DYN_PORTRANGE_ERR (0)
 
 /**
@@ -82,6 +95,25 @@ static inline bool gnrc_ep_addr_any(const sock_ip_ep_t *ep)
         }
     }
     return true;
+}
+
+/**
+ * @brief   Initializes a sock end-point from a given and sets the network
+ *          interface implicitly if there is only one potential interface.
+ * @internal
+ */
+static inline void gnrc_ep_set(sock_ip_ep_t *out, const sock_ip_ep_t *in,
+                               size_t in_size)
+{
+    memcpy(out, in, in_size);
+#if GNRC_NETIF_NUMOF == 1
+    /* set interface implicitly */
+    gnrc_netif_t *netif = gnrc_netif_iter(NULL);
+
+    if (netif != NULL) {
+        out->netif = netif->pid;
+    }
+#endif
 }
 
 /**

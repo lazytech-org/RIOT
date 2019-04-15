@@ -8,13 +8,14 @@
  */
 
 /**
- * @brief     Integer division functions
+ * @defgroup  sys_div   Integer division functions
+ * @ingroup   sys_math
  *
  * This header provides some integer division functions that can be used
  * to prevent linking in compiler-generated ones, which are often larger.
  *
  * @file
- * @ingroup   sys_util
+ * @ingroup   sys_div
  * @author    Kaspar Schleiser <kaspar@schleiser.de>
  * @author    Joakim Nohlgård <joakim.nohlgard@eistec.se>
  * @{
@@ -72,6 +73,33 @@ static inline uint64_t div_u64_by_15625(uint64_t val)
         return (_div_mulhi64(DIV_H_INV_15625_64, val) >> DIV_H_INV_15625_SHIFT);
     }
     return (val * DIV_H_INV_15625_32) >> (DIV_H_INV_15625_SHIFT + 32);
+}
+
+/**
+ * @brief Integer divide val by 125
+ *
+ * This function can be used to convert uint64_t microsecond times (or
+ * intervals) to miliseconds and store them in uint32_t variables, with up to
+ * ~50 days worth of miliseconds ((2**32*1000) -1).
+ * Use e.g.,  ms = div_u64_by_125(microseconds >> 3)
+ *
+ * @pre val <= 536870911999 ((2**32 * 125) -1)
+ *
+ * @param[in]   val     dividend
+ * @return      (val / 125)
+ */
+static inline uint32_t div_u64_by_125(uint64_t val)
+{
+  /* a higher value would overflow the result type */
+  assert(val <= 536870911999LLU);
+
+  uint32_t hi = val >> 32;
+  uint32_t lo = val;
+  uint32_t r = (lo >> 16) + (hi << 16);
+  uint32_t res = r / 125;
+  r = ((r % 125) << 16) + (lo & 0xFFFF);
+  res = (res << 16) + r / 125;
+  return res;
 }
 
 /**

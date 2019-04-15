@@ -30,6 +30,7 @@
 
 #include <stdio.h>
 
+#include "xtimer.h"
 #include "fix16.h"
 
 #ifndef M_PI
@@ -184,12 +185,14 @@ static void unary_ops(void)
 
 int main(void)
 {
+    /* Delay output to prevent flooding of buffer */
+    xtimer_sleep(1);
     puts("Unary.");
     unary_ops();
 
     puts("Binary.");
     binary_ops();
 
-    puts("Done.");
+    puts("SUCCESS");
     return 0;
 }

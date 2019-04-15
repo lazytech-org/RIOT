@@ -7,15 +7,14 @@
  */
 
 /**
- * @defgroup    boards_maple-mini maple-mini
- * @ingroup     boards
- * @brief       Board specific files for the maple-mini board
+ * @ingroup     boards_maple-mini
  * @{
  *
  * @file
  * @brief       Board specific definitions for the maple-mini board
  *
  * @author      Frits Kuipers <frits.kuipers@gmail.com>
+ * @author      Sebastian Meiling <s@mlng.net>
  */
 
 #ifndef BOARD_H
@@ -48,14 +47,17 @@ extern "C" {
 /** @} */
 
 /**
- * @brief   User button
+ * @name    User button
+ * @{
  */
-#define BTN_B1_PIN          GPIO_PIN(PORT_B, 8)
+#define BTN0_PIN            GPIO_PIN(PORT_B, 8)
+#define BTN0_MODE           GPIO_IN
+/** @} */
 
 /**
  * @brief Use the USART1 for STDIO on this board
  */
-#define UART_STDIO_DEV      UART_DEV(1)
+#define STDIO_UART_DEV      UART_DEV(1)
 
 /**
  * @brief   Initialize board specific hardware, including clock, LEDs and std-IO

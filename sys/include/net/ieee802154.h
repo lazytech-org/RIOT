@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-16 Freie Universität Berlin
+ * Copyright (C) 2015-2019 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -13,13 +13,13 @@
  * @{
  *
  * @file
- * @brief       IEEE 802.14.4 header definitions
+ * @brief       IEEE 802.15.4 header definitions
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef IEEE802154_H
-#define IEEE802154_H
+#ifndef NET_IEEE802154_H
+#define NET_IEEE802154_H
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -30,6 +30,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * @brief   Default start frame delimiter
+ */
+#define IEEE802154_SFD                      (0xa7)
 
 /**
  * @brief IEEE 802.15.4 address lengths
@@ -46,6 +51,8 @@ extern "C" {
  * @{
  */
 #define IEEE802154_MAX_HDR_LEN              (23U)
+#define IEEE802154_MIN_FRAME_LEN            (IEEE802154_FCF_LEN + sizeof(uint8_t))
+
 #define IEEE802154_FCF_LEN                  (2U)
 #define IEEE802154_FCS_LEN                  (2U)
 
@@ -81,10 +88,7 @@ extern "C" {
  * @brief   Channel ranges
  * @{
  */
-/**
- * @brief   Minimum channel for sub-GHz band
- */
-#define IEEE802154_CHANNEL_MIN_SUBGHZ   (0U)
+#define IEEE802154_CHANNEL_MIN_SUBGHZ   (0U)    /**< Minimum channel for sub-GHz band */
 #define IEEE802154_CHANNEL_MAX_SUBGHZ   (10U)   /**< Maximum channel for sub-GHz band */
 #define IEEE802154_CHANNEL_MIN          (11U)   /**< Minimum channel for 2.4 GHz band */
 #define IEEE802154_CHANNEL_MAX          (26U)   /**< Maximum channel for 2.4 GHz band */
@@ -113,24 +117,50 @@ extern const uint8_t ieee802154_addr_bcast[IEEE802154_ADDR_BCAST_LEN];
 /** @} */
 
 /**
+ * @defgroup net_ieee802154_conf    IEEE802.15.4 compile configurations
+ * @ingroup  config
  * @{
- * @name    Default values
- * @brief   Default values for devices to choose
+ */
+/**
+ * @brief IEEE802.15.4 default sub-GHZ channel
  */
 #ifndef IEEE802154_DEFAULT_SUBGHZ_CHANNEL
 #define IEEE802154_DEFAULT_SUBGHZ_CHANNEL   (5U)
 #endif
 
+/**
+ * @brief IEEE802.15.4 default channel
+ */
 #ifndef IEEE802154_DEFAULT_CHANNEL
 #define IEEE802154_DEFAULT_CHANNEL          (26U)
 #endif
 
+/**
+ * @brief IEEE802.15.4 default sub-GHZ page
+ */
+#ifndef IEEE802154_DEFAULT_SUBGHZ_PAGE
+#define IEEE802154_DEFAULT_SUBGHZ_PAGE      (2U)
+#endif
+
+/**
+ * @brief IEEE802.15.4 default PANID
+ */
 #ifndef IEEE802154_DEFAULT_PANID
 #define IEEE802154_DEFAULT_PANID            (0x0023U)
 #endif
 
+/**
+ * @brief IEEE802.15.4 Broadcast PANID
+ */
+#ifndef IEEE802154_PANID_BCAST
+#define IEEE802154_PANID_BCAST              { 0xff, 0xff }
+#endif
+
+/**
+ * @brief IEEE802.15.4 default TX power (in dBm)
+ */
 #ifndef IEEE802154_DEFAULT_TXPOWER
-#define IEEE802154_DEFAULT_TXPOWER          (0) /* in dBm */
+#define IEEE802154_DEFAULT_TXPOWER          (0)
 #endif
 /** @} */
 
@@ -144,7 +174,7 @@ extern const uint8_t ieee802154_addr_bcast[IEEE802154_ADDR_BCAST_LEN];
  * If @p dst is NULL the IEEE802154_FCF_ACK_REQ will be unset to prevent
  * flooding the network.
  *
- * @param[out] buf  Target memory for frame header.
+ * @param[out] buf      Target memory for frame header.
  * @param[in] src       Source address for frame in network byteorder.
  *                      May be NULL if @ref IEEE802154_FCF_SRC_ADDR_VOID is set
  *                      in @p flags.
@@ -278,6 +308,7 @@ static inline eui64_t *ieee802154_get_iid(eui64_t *eui64, const uint8_t *addr,
             eui64->uint8[0] = addr[i++] ^ 0x02;
             eui64->uint8[1] = addr[i++];
 
+            /* Falls through. */
         case 2:
             eui64->uint8[2] = 0;
             eui64->uint8[3] = 0xff;
@@ -298,5 +329,5 @@ static inline eui64_t *ieee802154_get_iid(eui64_t *eui64, const uint8_t *addr,
 }
 #endif
 
-#endif /* IEEE802154_H */
+#endif /* NET_IEEE802154_H */
 /** @} */

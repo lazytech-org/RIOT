@@ -28,20 +28,19 @@ extern "C" {
 #endif
 
 /**
- * @brief   Possible I2C bus addresses of the device
+ * @name    Possible I2C bus addresses of the device
  *
  * The actual address of the device depends on the state of the ADDR pin.
  * @{
  */
-#define BH1750FVI_ADDR_PIN_LOW          (0x5c)      /**< ADDR pin := 0 */
-#define BH1750FVI_ADDR_PIN_HIGH         (0x23)      /**< ADDR pin := 1 */
+#define BH1750FVI_ADDR_PIN_LOW          (0x23)      /**< ADDR pin := 0 */
+#define BH1750FVI_ADDR_PIN_HIGH         (0x5c)      /**< ADDR pin := 1 */
 /** @} */
-
 
 /**
  * @brief   Default address of BH1750FVI sensors
  */
-#define BH1750FVI_DEFAULT_ADDR          BH1750FVI_ADDR_PIN_HIGH
+#define BH1750FVI_DEFAULT_ADDR          BH1750FVI_ADDR_PIN_LOW
 
 /**
  * @brief   Maximum I2C bus speed to use with the device
@@ -70,7 +69,6 @@ typedef struct {
 typedef struct {
     i2c_t i2c;          /**< I2C bus the device is connected to */
     uint8_t addr;       /**< slave address of the device */
-    i2c_speed_t clk;    /**< clock speed to use on the I2C bus */
 } bh1750fvi_params_t;
 
 /**
@@ -82,7 +80,7 @@ typedef struct {
  * @return      0 on success
  * @return      -1 if unable to speak to the device
  */
-int bh1750fvi_init(bh1750fvi_t *dev, bh1750fvi_params_t *params);
+int bh1750fvi_init(bh1750fvi_t *dev, const bh1750fvi_params_t *params);
 
 /**
  * @brief   Read a ambient light value from the given device [in LUX]
@@ -95,7 +93,7 @@ int bh1750fvi_init(bh1750fvi_t *dev, bh1750fvi_params_t *params);
  *
  * @return      ambient light intensity in LUX
  */
-uint16_t bh1750fvi_sample(bh1750fvi_t *dev);
+uint16_t bh1750fvi_sample(const bh1750fvi_t *dev);
 
 #ifdef __cplusplus
 }

@@ -88,7 +88,6 @@ void cc2538_init(void)
 
     cc2538_set_tx_power(CC2538_RF_POWER_DEFAULT);
     cc2538_set_chan(CC2538_RF_CHANNEL_DEFAULT);
-    cc2538_set_pan(CC2538_RF_PANID_DEFAULT);
     cc2538_set_addr_long(cc2538_get_eui64_primary());
 
     /* Select the observable signals (maximum of three) */
@@ -173,7 +172,7 @@ bool cc2538_on(void)
 
 void cc2538_setup(cc2538_rf_t *dev)
 {
-    netdev2_t *netdev = (netdev2_t *)dev;
+    netdev_t *netdev = (netdev_t *)dev;
 
     netdev->driver = &cc2538_rf_driver;
 

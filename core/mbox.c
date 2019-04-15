@@ -28,8 +28,6 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-#ifdef MODULE_CORE_MBOX
-
 static void _wake_waiter(thread_t *thread, unsigned irqstate)
 {
     sched_set_status(thread, STATUS_PENDING);
@@ -61,7 +59,7 @@ int _mbox_put(mbox_t *mbox, msg_t *msg, int blocking)
 {
     unsigned irqstate = irq_disable();
 
-    list_node_t *next = (list_node_t*) list_remove_head(&mbox->readers);
+    list_node_t *next = list_remove_head(&mbox->readers);
     if (next) {
         DEBUG("mbox: Thread %"PRIkernel_pid" mbox 0x%08x: _tryput(): "
                 "there's a waiter.\n", sched_active_pid, (unsigned)mbox);
@@ -101,7 +99,7 @@ int _mbox_get(mbox_t *mbox, msg_t *msg, int blocking)
                 "got queued message.\n", sched_active_pid, (unsigned)mbox);
         /* copy msg from queue */
         *msg = mbox->msg_array[cib_get_unsafe(&mbox->cib)];
-        list_node_t *next = (list_node_t*) list_remove_head(&mbox->writers);
+        list_node_t *next = list_remove_head(&mbox->writers);
         if (next) {
             thread_t *thread = container_of((clist_node_t*)next, thread_t, rq_entry);
             _wake_waiter(thread, irqstate);
@@ -122,5 +120,3 @@ int _mbox_get(mbox_t *mbox, msg_t *msg, int blocking)
         return 0;
     }
 }
-
-#endif /* MODULE_CORE_MBOX */

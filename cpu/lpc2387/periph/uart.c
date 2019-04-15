@@ -8,6 +8,7 @@
 
 /**
  * @ingroup     cpu_lpc2387
+ * @ingroup     drivers_periph_uart
  * @{
  *
  * @file
@@ -24,7 +25,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "lpc23xx.h"
+#include "cpu.h"
 #include "VIC.h"
 #include "periph/uart.h"
 
@@ -96,4 +97,16 @@ void UART0_IRQHandler(void)
     }
 
     VICVectAddr = 0;                    /* Acknowledge Interrupt */
+}
+
+void uart_poweron(uart_t uart)
+{
+    (void)uart;
+    /* not implemented (yet) */
+}
+
+void uart_poweroff(uart_t uart)
+{
+    (void)uart;
+    /* not implemented (yet) */
 }

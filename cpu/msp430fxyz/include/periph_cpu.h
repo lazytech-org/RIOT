@@ -7,7 +7,9 @@
  */
 
 /**
- * @ingroup         cpu_msp430fxyz
+ * @defgroup    cpu_msp430fxyz TI MSP430F
+ * @ingroup     cpu
+ * @brief       Texas Instruments MSP430F family specific code
  * @{
  *
  * @file
@@ -16,9 +18,10 @@
  * @author          Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef CPU_PERIPH_H
-#define CPU_PERIPH_H
+#ifndef PERIPH_CPU_H
+#define PERIPH_CPU_H
 
+#include <stdbool.h>
 #include "cpu.h"
 #include "msp430_regs.h"
 
@@ -43,7 +46,7 @@ typedef uint16_t gpio_t;
  * @brief   Mandatory function for defining a GPIO pins
  * @{
  */
-#define GPIO_PIN(x, y)      ((gpio_t)(((x & 0xff) << 8) | (1 << (y & 0xff))))
+#define GPIO_PIN(x, y)      ((gpio_t)(((x & 0xff) << 8) | (1 << (y & 0x07))))
 
 /**
  * @brief   No support for HW chip select...
@@ -132,5 +135,5 @@ void gpio_periph_mode(gpio_t pin, bool enable);
 }
 #endif
 
-#endif /* CPU_PERIPH_H */
+#endif /* PERIPH_CPU_H */
 /** @} */

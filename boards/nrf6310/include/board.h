@@ -7,9 +7,7 @@
  */
 
 /**
- * @defgroup    board_nrf6310 NRF6310 (Nordic NRF Hardware Development Kit)
- * @ingroup     boards
- * @brief       Board specific files for the nRF51 boards nrf6310 or MOMMOSOFT BLE DEVKIT.N
+ * @ingroup     boards_nrf6310
  * @{
  *
  * @file
@@ -30,7 +28,7 @@ extern "C" {
 #endif
 
 /**
- * @brief   LED pin definitions and handlers
+ * @name    LED pin definitions and handlers
  * @{
  */
 #define LED0_PIN            GPIO_PIN(0, 8)
@@ -55,7 +53,7 @@ extern "C" {
 /** @} */
 
 /**
- * @brief Initialize board specific hardware, including clock, LEDs and std-IO
+ * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
  */
 void board_init(void);
 
@@ -63,5 +61,5 @@ void board_init(void);
 }
 #endif
 
-#endif /** BOARD_H */
+#endif /* BOARD_H */
 /** @} */

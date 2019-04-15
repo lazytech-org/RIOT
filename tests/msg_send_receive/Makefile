@@ -1,8 +1,8 @@
-# name of your application
-APPLICATION = msg_send_receive
 include ../Makefile.tests_common
 
-include $(RIOTBASE)/Makefile.include
+BOARD_INSUFFICIENT_MEMORY := arduino-duemilanove arduino-nano arduino-uno \
+                             nucleo-f031k6
 
-test:
-	./tests/01-run.py
+TEST_ON_CI_WHITELIST += all
+
+include $(RIOTBASE)/Makefile.include

@@ -6,15 +6,45 @@
  * directory for more details.
  */
 
-#ifndef CPUCONF_H
-#define CPUCONF_H
+/**
+ * @ingroup     cpu_msp430_common
+ * @{
+ *
+ * @file
+ * @brief       Common CPU definitions fpr MSP430
+ *
+ */
+
+#ifndef CPU_CONF_H
+#define CPU_CONF_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @name Kernel configuration
+ * @name   Configure the internal flash memory
+ * @{
+ */
+#define FLASHPAGE_SIZE      (512)
+
+#if defined (CPU_MODEL_MSP430F1611)
+#define CPU_FLASH_BASE      (0x4000)
+#define FLASHPAGE_NUMOF     (96)        /* 48K */
+#elif defined (CPU_MODEL_MSP430F1612)
+#define CPU_FLASH_BASE      (0x2600)
+#define FLASHPAGE_NUMOF     (110)       /* 56K */
+#elif defined (CPU_MODEL_MSP430F2617)
+#define CPU_FLASH_BASE      (0x3100)
+#define FLASHPAGE_NUMOF     (128)       /* we can currently only access 52K */
+#elif defined (CPU_MODEL_CC430F6137)
+#define CPU_FLASH_BASE      (0x8000)
+#define FLASHPAGE_NUMOF     (64)        /* 32K */
+#endif
+/** @} */
+
+/**
+ * @name    Kernel configuration
  * @{
  */
 #ifndef THREAD_EXTRA_STACKSIZE_PRINTF
@@ -41,10 +71,15 @@ extern "C" {
 /* TODO: Make this value overall MTU dependent */
 #   define GNRC_PKTBUF_SIZE                 (2560)
 #endif
+
+#ifndef GNRC_IPV6_STACK_SIZE
+#   define GNRC_IPV6_STACK_SIZE             (512)
+#endif
 /** @} */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CPUCONF_H */
+#endif /* CPU_CONF_H */
+/** @} */

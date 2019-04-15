@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Cenk Gündoğan <mail@cgundogan.de>
+ * Copyright (C) 2016 Cenk Gündoğan <cenk.guendogan@haw-hamburg.de>
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -13,11 +13,11 @@
  * @file
  * @brief       RPL control message statistics functions
  *
- * @author      Cenk Gündoğan <mail@cgundogan.de>
+ * @author      Cenk Gündoğan <cenk.guendogan@haw-hamburg.de>
  */
 
-#ifndef RPL_NETSTATS_H
-#define RPL_NETSTATS_H
+#ifndef NETSTATS_H
+#define NETSTATS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -187,5 +187,5 @@ static inline void gnrc_rpl_netstats_tx_DAO_ACK(netstats_rpl_t *netstats, size_t
 }
 #endif
 
-#endif /* RPL_NETSTATS_H */
+#endif /* NETSTATS_H */
 /** @} */

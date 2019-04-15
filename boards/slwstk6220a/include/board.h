@@ -7,9 +7,7 @@
  */
 
 /**
- * @defgroup    boards_wstk6220 Silicon Labs WSTK6220 Eval Kit
- * @ingroup     boards
- * @brief       Support for the Silicon Labs WSTK6220 evaluation kit
+ * @ingroup     boards_slwstk6220a
  * @{
  *
  * @file
@@ -36,7 +34,7 @@ extern "C" {
 #define HW_TIMER            TIMER_DEV(0)
 
 /**
- * @brief   Connection to the on-board temperature/humidity sensor (Si7021)
+ * @name    Connection to the on-board temperature/humidity sensor (Si7021)
  * @{
  */
 #define SI7021_I2C          (I2C_0)
@@ -50,7 +48,7 @@ extern "C" {
 #define BC_PIN              GPIO_PIN(PA,12)
 
 /**
- * @brief   User button pin definitions
+ * @name   User button pin definitions
  * @{
  */
 #define PB0_PIN             GPIO_PIN(PE,3)
@@ -58,7 +56,7 @@ extern "C" {
 /** @} */
 
 /**
- * @brief   LED pin definitions
+ * @name    LED pin definitions
  * @{
  */
 #define LED0_PIN            GPIO_PIN(PF, 6)
@@ -74,7 +72,7 @@ extern "C" {
 /** @} */
 
 /**
- * @brief Initialize board specific hardware, including clock, LEDs and std-IO
+ * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
  */
 void board_init(void);
 

@@ -23,6 +23,7 @@
 #define DONT_OVERRIDE_NVIC
 
 #include "cpu.h"
+#include "nrf_clock.h"
 #include "periph_conf.h"
 #include "periph/init.h"
 
@@ -60,29 +61,27 @@ void cpu_init(void)
         NRF_CLOCK->EVENTS_CTTO = 0;
     }
 
-    /* set the correct clock source for HFCLK */
-#if (CLOCK_CRYSTAL == 32)
-    NRF_CLOCK->LFCLKSRC = (CLOCK_LFCLKSRC_SRC_Xtal << CLOCK_LFCLKSRC_SRC_Pos);
+    /* initialize hf clock */
+    clock_init_hf();
 
-    NRF_CLOCK->EVENTS_HFCLKSTARTED = 0;
-    NRF_CLOCK->TASKS_HFCLKSTART = 1;
-
-    while (NRF_CLOCK->EVENTS_HFCLKSTARTED == 0);
-#endif
+    /* enable instruction cache */
+    NRF_NVMC->ICACHECNF = (NVMC_ICACHECNF_CACHEEN_Msk);
 
     /* softdevice needs to be enabled from ISR context */
 #ifdef SOFTDEVICE_PRESENT
     softdevice_handler_init(NRF_CLOCK_LFCLKSRC_XTAL_20_PPM, &_ble_evt_buffer,
             BLE_STACK_EVT_MSG_BUF_SIZE, NULL);
-#endif
-    /* call cortexm default initialization */
-    cortexm_init();
 
-#ifdef SOFTDEVICE_PRESENT
     /* fixup swi0 (used as softdevice PendSV trampoline) */
     NVIC_EnableIRQ(SWI0_EGU0_IRQn);
     NVIC_SetPriority(SWI0_EGU0_IRQn, 6);
+#else
+    /* call cortexm default initialization */
+    cortexm_init();
 #endif
+
+    /* enable wake up on events for __WFE CPU sleep */
+    SCB->SCR |= SCB_SCR_SEVONPEND_Msk;
 
     /* trigger static peripheral initialization */
     periph_init();

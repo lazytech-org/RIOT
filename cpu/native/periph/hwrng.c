@@ -8,8 +8,8 @@
  */
 
 /**
- * @ingroup     native_cpu
- * @defgroup    native_rng
+ * @ingroup     cpu_native
+ * @ingroup     drivers_periph_hwrng
  * @{
  *
  * @file

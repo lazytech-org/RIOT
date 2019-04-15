@@ -9,7 +9,8 @@
  */
 
 /**
- * @ingroup     cpu_samd21
+ * @ingroup     cpu_sam0_common
+ * @ingroup     drivers_periph_spi
  * @{
  *
  * @file
@@ -49,7 +50,7 @@ static inline void poweron(spi_t bus)
 {
 #if defined(CPU_FAM_SAMD21)
     PM->APBCMASK.reg |= (PM_APBCMASK_SERCOM0 << sercom_id(dev(bus)));
-#elif defined(CPU_FAM_SAML21)
+#elif defined(CPU_SAML21) || defined(CPU_SAML1X)
     MCLK->APBCMASK.reg |= (MCLK_APBCMASK_SERCOM0 << sercom_id(dev(bus)));
 #endif
 }
@@ -58,7 +59,7 @@ static inline void poweroff(spi_t bus)
 {
 #if defined(CPU_FAM_SAMD21)
     PM->APBCMASK.reg &= ~(PM_APBCMASK_SERCOM0 << sercom_id(dev(bus)));
-#elif defined(CPU_FAM_SAML21)
+#elif defined(CPU_SAML21) || defined(CPU_SAML1X)
     MCLK->APBCMASK.reg &= ~(MCLK_APBCMASK_SERCOM0 << sercom_id(dev(bus)));
 #endif
 }
@@ -87,7 +88,7 @@ void spi_init(spi_t bus)
     GCLK->CLKCTRL.reg = (GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK0 |
                          (SERCOM0_GCLK_ID_CORE + sercom_id(dev(bus))));
     while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY) {}
-#elif defined(CPU_FAM_SAML21)
+#elif defined(CPU_SAML21) || defined(CPU_SAML1X)
     GCLK->PCHCTRL[SERCOM0_GCLK_ID_CORE + sercom_id(dev(bus))].reg =
                                 (GCLK_PCHCTRL_CHEN | GCLK_PCHCTRL_GEN_GCLK0);
 #endif
@@ -102,7 +103,8 @@ void spi_init(spi_t bus)
 
 void spi_init_pins(spi_t bus)
 {
-    gpio_init(spi_config[bus].miso_pin, GPIO_IN);
+    /* MISO must always have PD/PU, see #5968. This is a ~65uA difference */
+    gpio_init(spi_config[bus].miso_pin, GPIO_IN_PD);
     gpio_init(spi_config[bus].mosi_pin, GPIO_OUT);
     gpio_init(spi_config[bus].clk_pin, GPIO_OUT);
     gpio_init_mux(spi_config[bus].miso_pin, spi_config[bus].miso_mux);
@@ -112,10 +114,15 @@ void spi_init_pins(spi_t bus)
 
 int spi_acquire(spi_t bus, spi_cs_t cs, spi_mode_t mode, spi_clk_t clk)
 {
+    (void) cs;
     /* get exclusive access to the device */
     mutex_lock(&locks[bus]);
     /* power on the device */
     poweron(bus);
+
+    /* disable the device */
+    dev(bus)->CTRLA.reg &= ~(SERCOM_SPI_CTRLA_ENABLE);
+    while (dev(bus)->SYNCBUSY.reg & SERCOM_SPI_SYNCBUSY_ENABLE) {}
 
     /* configure bus clock, in synchronous mode its calculated from
      * BAUD.reg = (f_ref / (2 * f_bus) - 1)
@@ -130,7 +137,7 @@ int spi_acquire(spi_t bus, spi_cs_t cs, spi_mode_t mode, spi_clk_t clk)
     dev(bus)->CTRLA.reg = (SERCOM_SPI_CTRLA_MODE(0x3) |     /* 0x3 -> master */
                            SERCOM_SPI_CTRLA_DOPO(spi_config[bus].mosi_pad) |
                            SERCOM_SPI_CTRLA_DIPO(spi_config[bus].miso_pad) |
-                           (mode <<  SERCOM_SPI_CTRLA_CPOL_Pos));
+                           (mode <<  SERCOM_SPI_CTRLA_CPHA_Pos));
     /* also no synchronization needed here, as CTRLA is write-synchronized */
 
     /* finally enable the device */
@@ -142,10 +149,6 @@ int spi_acquire(spi_t bus, spi_cs_t cs, spi_mode_t mode, spi_clk_t clk)
 
 void spi_release(spi_t bus)
 {
-    /* disable device and put it back to sleep */
-    dev(bus)->CTRLA.reg &= ~(SERCOM_SPI_CTRLA_ENABLE);
-    while (dev(bus)->SYNCBUSY.reg & SERCOM_SPI_SYNCBUSY_ENABLE) {}
-    poweroff(bus);
     /* release access to the device */
     mutex_unlock(&locks[bus]);
 }
@@ -153,8 +156,8 @@ void spi_release(spi_t bus)
 void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
                         const void *out, void *in, size_t len)
 {
-    uint8_t *out_buf = (uint8_t *)out;
-    uint8_t *in_buf = (uint8_t *)in;
+    const uint8_t *out_buf = out;
+    uint8_t *in_buf = in;
 
     assert(out || in);
 

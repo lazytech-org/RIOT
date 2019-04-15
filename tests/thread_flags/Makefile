@@ -1,7 +1,11 @@
-APPLICATION = thread_flags
 include ../Makefile.tests_common
 
-USEMODULE += xtimer
+BOARD_INSUFFICIENT_MEMORY := arduino-duemilanove arduino-nano arduino-uno \
+                             nucleo-f031k6
+
 USEMODULE += core_thread_flags
+USEMODULE += xtimer
+
+TEST_ON_CI_WHITELIST += all
 
 include $(RIOTBASE)/Makefile.include

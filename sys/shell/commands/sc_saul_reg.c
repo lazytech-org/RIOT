@@ -19,6 +19,7 @@
  * @}
  */
 
+#include <stddef.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -116,7 +117,7 @@ static void write(int argc, char **argv)
     memset(&data, 0, sizeof(data));
     dim = ((argc - 3) > (int)PHYDAT_DIM) ? (int)PHYDAT_DIM : (argc - 3);
     for (int i = 0; i < dim; i++) {
-        data.val[i] = (int16_t)atoi(argv[i + 3]);
+        data.val[i] = atoi(argv[i + 3]);
     }
     /* print values before writing */
     printf("Writing to device #%i - %s\n", num, dev->name);

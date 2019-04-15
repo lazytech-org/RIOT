@@ -1,31 +1,13 @@
-PKG_NAME = tlsf
-PKG_VERSION = 3.0
-PKG_FILE = tlsf-$(PKG_VERSION).zip
-PKG_URL = http://download.riot-os.org/$(PKG_FILE)
-PKG_LICENSE = PD
-PKG_DIR=$(CURDIR)
-PKG_BUILDDIR=$(BINDIRBASE)/pkg/$(BOARD)/$(PKG_NAME)
-PKG_SRCDIR=$(PKG_BUILDDIR)/src
+PKG_NAME=tlsf
+PKG_URL=https://github.com/mattconte/tlsf
+PKG_VERSION=a1f743ffac0305408b39e791e0ffb45f6d9bc777
+PKG_LICENSE=BSD
 
-.PHONY: all clean distclean
+.PHONY: all
 
-all: $(PKG_SRCDIR)/$(PKG_NAME).a
+all: Makefile.tlsf
+	@cp Makefile.tlsf $(PKG_BUILDDIR)/Makefile
+	"$(MAKE)" -C $(PKG_BUILDDIR)
 
-$(PKG_SRCDIR)/$(PKG_NAME).a: $(PKG_SRCDIR)/Makefile
-	$(Q)make -C $(<D)
 
-$(PKG_SRCDIR)/Makefile: $(PKG_BUILDDIR)/$(PKG_FILE) $(CURDIR)/patch.txt
-	rm -rf $(@D)
-	mkdir -p $(@D)
-	$(Q)cd $(@D) && $(UNZIP_HERE) $(PKG_BUILDDIR)/$(PKG_FILE)
-	$(Q)cd $(@D) && patch --binary -p0 -N -i $(CURDIR)/patch.txt
-
-$(PKG_BUILDDIR)/$(PKG_FILE):
-	@mkdir -p $(@D)
-	$(Q)$(DOWNLOAD_TO_FILE) $@ $(PKG_URL)
-
-clean::
-	rm -rf $(PKG_SRCDIR)/
-
-distclean::
-	rm -rf $(PKG_BUILDDIR)/
+include $(RIOTBASE)/pkg/pkg.mk

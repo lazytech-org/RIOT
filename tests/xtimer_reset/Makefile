@@ -1,8 +1,7 @@
-APPLICATION = xtimer_reset
 include ../Makefile.tests_common
 
-RIOTBASE ?= $(CURDIR)/../..
-
 USEMODULE += xtimer
+
+TEST_ON_CI_WHITELIST += all
 
 include $(RIOTBASE)/Makefile.include

@@ -23,14 +23,49 @@
 #ifndef PERIPH_CPU_COMMON_H
 #define PERIPH_CPU_COMMON_H
 
+#include "cpu.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#ifndef DOXYGEN
+/**
+ * @brief   Overwrite the default gpio_t type definition
+ * @{
+ */
+#define HAVE_GPIO_T
+typedef uint8_t gpio_t;
+/** @} */
+#endif
+
+/**
+ * @brief   Definition of a fitting UNDEF value
+ */
+#define GPIO_UNDEF          (0xff)
 
 /**
  * @brief   Define a CPU specific GPIO pin generator macro
  */
 #define GPIO_PIN(x, y)          ((x << 4) | y)
+
+/**
+ * @brief   Override the GPIO flanks
+ *
+ * This device has an additional mode in which the interrupt is triggered
+ * when the pin is low.
+ *
+ * Enumeration order is important, do not modify.
+ * @{
+ */
+#define HAVE_GPIO_FLANK_T
+typedef enum {
+    GPIO_LOW,          /**< emit interrupt when pin low */
+    GPIO_BOTH,         /**< emit interrupt on both flanks */
+    GPIO_FALLING,      /**< emit interrupt on falling flank */
+    GPIO_RISING,       /**< emit interrupt on rising flank */
+} gpio_flank_t;
+/** @} */
 
 /**
  * @brief   Use some common SPI functions
@@ -89,6 +124,32 @@ typedef enum {
     SPI_CLK_10MHZ  = SPI_CLK_SEL(1, 0, 0)       /**< 16/2   -> 8MHz */
 } spi_clk_t;
 /** @} */
+
+/**
+ * @brief  Bitmasks indicating which are the possible dividers for a timer
+ * @{
+ */
+typedef enum {
+    TIMER_DIV1_8_64_128_1024 = 0x549,           /**< 1/{1,8,64,128,1024} */
+    TIMER_DIV1_8_32_64_128_256_1024 = 0x5E9,    /**< 1/{1,8,32,64,128,256,1024} */
+} timer_div_t;
+/** @} */
+
+/**
+ * @brief   PWM configuration
+ * @{
+ */
+typedef struct {
+    mini_timer_t *dev;                  /**< Timer used */
+    gpio_t pin_ch[2];                   /**< Output Pins */
+    timer_div_t div;                    /**< Timer divider mask */
+} pwm_conf_t;
+/** @} */
+
+/**
+ * @brief   EEPROM clear byte
+ */
+#define EEPROM_CLEAR_BYTE              (0xff)
 
 #ifdef __cplusplus
 }

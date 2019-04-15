@@ -31,6 +31,9 @@
 #include "mpu.h"
 #include "panic.h"
 #include "vectors_cortexm.h"
+#ifdef MODULE_PUF_SRAM
+#include "puf_sram.h"
+#endif
 
 #ifndef SRAM_BASE
 #define SRAM_BASE 0
@@ -49,8 +52,8 @@ extern uint32_t _szero;
 extern uint32_t _ezero;
 extern uint32_t _sstack;
 extern uint32_t _estack;
-extern uint32_t _sram;
-extern uint32_t _eram;
+extern uint8_t _sram;
+extern uint8_t _eram;
 /** @} */
 
 /**
@@ -76,6 +79,10 @@ void reset_handler_default(void)
 {
     uint32_t *dst;
     uint32_t *src = &_etext;
+
+#ifdef MODULE_PUF_SRAM
+    puf_sram_init((uint8_t *)&_srelocate, SEED_RAM_LEN);
+#endif
 
     pre_startup();
 
@@ -181,7 +188,8 @@ __attribute__((naked)) void hard_fault_default(void)
         " use_psp:                          \n" /* else {                     */
         "mrs r0, psp                        \n" /*   r0 = psp                 */
         " out:                              \n" /* }                          */
-#if (__CORTEX_M == 0)
+#if defined(CPU_ARCH_CORTEX_M0) || defined(CPU_ARCH_CORTEX_M0PLUS) \
+    || defined(CPU_ARCH_CORTEX_M23)
         "push {r4-r7}                       \n" /* save r4..r7 to the stack   */
         "mov r3, r8                         \n" /*                            */
         "mov r4, r9                         \n" /*                            */
@@ -201,9 +209,10 @@ __attribute__((naked)) void hard_fault_default(void)
     );
 }
 
-#if (__CORTEX_M == 0)
-/* Cortex-M0 and Cortex-M0+ lack the extended fault status registers found in
- * Cortex-M3 and above. */
+#if defined(CPU_ARCH_CORTEX_M0) || defined(CPU_ARCH_CORTEX_M0PLUS) \
+    || defined(CPU_ARCH_CORTEX_M23)
+/* Cortex-M0, Cortex-M0+ and Cortex-M23 lack the extended fault status
+   registers found in Cortex-M3 and above. */
 #define CPU_HAS_EXTENDED_FAULT_REGISTERS 0
 #else
 #define CPU_HAS_EXTENDED_FAULT_REGISTERS 1
@@ -229,6 +238,8 @@ __attribute__((used)) void hard_fault_handler(uint32_t* sp, uint32_t corrupted, 
     /* Initialize these variables even if they're never used uninitialized.
      * Fixes wrong compiler warning by gcc < 6.0. */
     uint32_t pc = 0;
+    /* cppcheck-suppress variableScope
+     * (reason: used within __asm__ which cppcheck doesn't pick up) */
     uint32_t* orig_sp = NULL;
 
     /* Check if the ISR stack overflowed previously. Not possible to detect
@@ -252,11 +263,12 @@ __attribute__((used)) void hard_fault_handler(uint32_t* sp, uint32_t corrupted, 
 
         /* Reconstruct original stack pointer before fault occurred */
         orig_sp = sp + 8;
+#ifdef SCB_CCR_STKALIGN_Msk
         if (psr & SCB_CCR_STKALIGN_Msk) {
             /* Stack was not 8-byte aligned */
             orig_sp += 1;
         }
-
+#endif /* SCB_CCR_STKALIGN_Msk */
         puts("\nContext before hardfault:");
 
         /* TODO: printf in ISR context might be a bad idea */
@@ -306,7 +318,8 @@ __attribute__((used)) void hard_fault_handler(uint32_t* sp, uint32_t corrupted, 
             "mov lr, r1\n"
             "mov sp, %[orig_sp]\n"
             "mov r1, %[extra_stack]\n"
-#if (__CORTEX_M == 0)
+#if defined(CPU_ARCH_CORTEX_M0) || defined(CPU_ARCH_CORTEX_M0PLUS) \
+    || defined(CPU_ARCH_CORTEX_M23)
             "ldm r1!, {r4-r7}\n"
             "mov r8, r4\n"
             "mov r9, r5\n"
@@ -340,7 +353,7 @@ void hard_fault_default(void)
 #endif /* DEVELHELP */
 
 #if defined(CPU_ARCH_CORTEX_M3) || defined(CPU_ARCH_CORTEX_M4) || \
-    defined(CPU_ARCH_CORTEX_M4F)
+    defined(CPU_ARCH_CORTEX_M4F) || defined(CPU_ARCH_CORTEX_M7)
 void mem_manage_default(void)
 {
     core_panic(PANIC_MEM_MANAGE, "MEM MANAGE HANDLER");
@@ -366,3 +379,40 @@ void dummy_handler_default(void)
 {
     core_panic(PANIC_DUMMY_HANDLER, "DUMMY HANDLER");
 }
+
+/* Cortex-M common interrupt vectors */
+__attribute__((weak,alias("dummy_handler_default"))) void isr_svc(void);
+__attribute__((weak,alias("dummy_handler_default"))) void isr_pendsv(void);
+__attribute__((weak,alias("dummy_handler_default"))) void isr_systick(void);
+
+/* define Cortex-M base interrupt vectors */
+ISR_VECTOR(0) const cortexm_base_t cortex_vector_base = {
+    &_estack,
+    {
+        /* entry point of the program */
+        [ 0] = reset_handler_default,
+        /* [-14] non maskable interrupt handler */
+        [ 1] = nmi_default,
+        /* [-13] hard fault exception */
+        [ 2] = hard_fault_default,
+        /* [-5] SW interrupt, in RIOT used for triggering context switches */
+        [10] = isr_svc,
+        /* [-2] pendSV interrupt, in RIOT use to do the actual context switch */
+        [13] = isr_pendsv,
+        /* [-1] SysTick interrupt, not used in RIOT */
+        [14] = isr_systick,
+
+        /* additional vectors used by M3, M4(F), and M7 */
+#if defined(CPU_ARCH_CORTEX_M3) || defined(CPU_ARCH_CORTEX_M4) || \
+    defined(CPU_ARCH_CORTEX_M4F) || defined(CPU_ARCH_CORTEX_M7)
+        /* [-12] memory manage exception */
+        [ 3] = mem_manage_default,
+        /* [-11] bus fault exception */
+        [ 4] = bus_fault_default,
+        /* [-10] usage fault exception */
+        [ 5] = usage_fault_default,
+        /* [-4] debug monitor exception */
+        [11] = debug_mon_default,
+#endif
+    }
+};

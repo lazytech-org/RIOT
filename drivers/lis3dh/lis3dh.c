@@ -20,33 +20,34 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include "periph/gpio.h"
 #include "periph/spi.h"
 #include "lis3dh.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-#define SPI_MODE            SPI_MODE_0
+#define SPI_MODE            SPI_MODE_3
 
-static inline int lis3dh_write_bits(const lis3dh_t *dev, const lis3dh_reg_t reg,
+#define DEV_SPI        (dev->params.spi)
+#define DEV_CS         (dev->params.cs)
+#define DEV_CLK        (dev->params.clk)
+#define DEV_SCALE      (dev->params.scale)
+
+static inline int lis3dh_write_bits(const lis3dh_t *dev, const uint8_t reg,
                                     const uint8_t mask,  const uint8_t values);
-static int lis3dh_write_reg(const lis3dh_t *dev, const lis3dh_reg_t reg,
+static int lis3dh_write_reg(const lis3dh_t *dev, const uint8_t reg,
                             const uint8_t value);
-static int lis3dh_read_regs(const lis3dh_t *dev, const lis3dh_reg_t reg,
+static int lis3dh_read_regs(const lis3dh_t *dev, const uint8_t reg,
                             const uint8_t len, uint8_t *buf);
 
 int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params)
 {
+    dev->params = *params;
+
     uint8_t test;
 
-    dev->spi   = params->spi;
-    dev->clk   = params->clk;
-    dev->cs    = params->cs;
-    dev->scale = params->scale;
-
     /* initialize the chip select line */
-    if (spi_init_cs(dev->spi, dev->cs) != SPI_OK) {
+    if (spi_init_cs(DEV_SPI, DEV_CS) != SPI_OK) {
         DEBUG("[lis3dh] error while initializing CS pin\n");
         return -1;
     }
@@ -76,7 +77,7 @@ int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params)
     lis3dh_write_reg(dev, LIS3DH_REG_CTRL_REG6, 0);
 
     /* Configure scale */
-    lis3dh_set_scale(dev, dev->scale);
+    lis3dh_set_scale(dev, DEV_SCALE);
 
     return 0;
 }
@@ -89,12 +90,12 @@ int lis3dh_read_xyz(const lis3dh_t *dev, lis3dh_data_t *acc_data)
                                  LIS3DH_SPI_MULTI_MASK);
 
     /* Acquire exclusive access to the bus. */
-    spi_acquire(dev->spi, dev->cs, SPI_MODE, dev->clk);
+    spi_acquire(DEV_SPI, DEV_CS, SPI_MODE, DEV_CLK);
     /* Perform the transaction */
-    spi_transfer_regs(dev->spi, dev->cs, addr,
+    spi_transfer_regs(DEV_SPI, DEV_CS, addr,
                       NULL, acc_data, sizeof(lis3dh_data_t));
     /* Release the bus for other threads. */
-    spi_release(dev->spi);
+    spi_release(DEV_SPI);
 
     /* Scale to milli-G */
     for (i = 0; i < 3; ++i) {
@@ -125,7 +126,7 @@ int lis3dh_read_aux_adc3(const lis3dh_t *dev, int16_t *out)
                             LIS3DH_ADC_DATA_SIZE, (uint8_t *)out);
 }
 
-int lis3dh_set_aux_adc(lis3dh_t *dev, const uint8_t enable,
+int lis3dh_set_aux_adc(const lis3dh_t *dev, const uint8_t enable,
                        const uint8_t temperature)
 {
     return lis3dh_write_bits(dev, LIS3DH_REG_TEMP_CFG_REG,
@@ -134,13 +135,13 @@ int lis3dh_set_aux_adc(lis3dh_t *dev, const uint8_t enable,
                              (temperature ? LIS3DH_TEMP_CFG_REG_TEMP_EN_MASK : 0));
 }
 
-int lis3dh_set_axes(lis3dh_t *dev, const uint8_t axes)
+int lis3dh_set_axes(const lis3dh_t *dev, const uint8_t axes)
 {
     return lis3dh_write_bits(dev, LIS3DH_REG_CTRL_REG1,
                              LIS3DH_CTRL_REG1_XYZEN_MASK, axes);
 }
 
-int lis3dh_set_fifo(lis3dh_t *dev, const uint8_t mode, const uint8_t watermark)
+int lis3dh_set_fifo(const lis3dh_t *dev, const uint8_t mode, const uint8_t watermark)
 {
     int status;
     uint8_t reg;
@@ -162,7 +163,7 @@ int lis3dh_set_fifo(lis3dh_t *dev, const uint8_t mode, const uint8_t watermark)
     return status;
 }
 
-int lis3dh_set_odr(lis3dh_t *dev, const uint8_t odr)
+int lis3dh_set_odr(const lis3dh_t *dev, const uint8_t odr)
 {
     return lis3dh_write_bits(dev, LIS3DH_REG_CTRL_REG1,
         LIS3DH_CTRL_REG1_ODR_MASK, odr);
@@ -198,12 +199,12 @@ int lis3dh_set_scale(lis3dh_t *dev, const uint8_t scale)
                              LIS3DH_CTRL_REG4_FS_MASK, scale_reg);
 }
 
-int lis3dh_set_int1(lis3dh_t *dev, const uint8_t mode)
+int lis3dh_set_int1(const lis3dh_t *dev, const uint8_t mode)
 {
     return lis3dh_write_reg(dev, LIS3DH_REG_CTRL_REG3, mode);
 }
 
-int lis3dh_get_fifo_level(lis3dh_t *dev)
+int lis3dh_get_fifo_level(const lis3dh_t *dev)
 {
     uint8_t reg;
     int level;
@@ -228,7 +229,7 @@ int lis3dh_get_fifo_level(lis3dh_t *dev)
  * @return                  0 on success
  * @return                  -1 on error
  */
-static int lis3dh_read_regs(const lis3dh_t *dev, const lis3dh_reg_t reg,
+static int lis3dh_read_regs(const lis3dh_t *dev, const uint8_t reg,
                             const uint8_t len, uint8_t *buf)
 {
     /* Set READ MULTIPLE mode */
@@ -236,11 +237,11 @@ static int lis3dh_read_regs(const lis3dh_t *dev, const lis3dh_reg_t reg,
                     LIS3DH_SPI_MULTI_MASK;
 
     /* Acquire exclusive access to the bus. */
-    spi_acquire(dev->spi, dev->cs, SPI_MODE, dev->clk);
+    spi_acquire(DEV_SPI, DEV_CS, SPI_MODE, DEV_CLK);
     /* Perform the transaction */
-    spi_transfer_regs(dev->spi, dev->cs, addr, NULL, buf, (size_t)len);
+    spi_transfer_regs(DEV_SPI, DEV_CS, addr, NULL, buf, (size_t)len);
     /* Release the bus for other threads. */
-    spi_release(dev->spi);
+    spi_release(DEV_SPI);
 
     return 0;
 }
@@ -254,7 +255,7 @@ static int lis3dh_read_regs(const lis3dh_t *dev, const lis3dh_reg_t reg,
  * @return                  0 on success
  * @return                  -1 on error
  */
-static int lis3dh_write_reg(const lis3dh_t *dev, const lis3dh_reg_t reg,
+static int lis3dh_write_reg(const lis3dh_t *dev, const uint8_t reg,
                             const uint8_t value)
 {
     /* Set WRITE SINGLE mode */
@@ -262,11 +263,11 @@ static int lis3dh_write_reg(const lis3dh_t *dev, const lis3dh_reg_t reg,
                     LIS3DH_SPI_SINGLE_MASK);
 
     /* Acquire exclusive access to the bus. */
-    spi_acquire(dev->spi, dev->cs, SPI_MODE, dev->clk);
+    spi_acquire(DEV_SPI, DEV_CS, SPI_MODE, DEV_CLK);
     /* Perform the transaction */
-    spi_transfer_reg(dev->spi, dev->cs, addr, value);
+    spi_transfer_reg(DEV_SPI, DEV_CS, addr, value);
     /* Release the bus for other threads. */
-    spi_release(dev->spi);
+    spi_release(DEV_SPI);
 
     return 0;
 }
@@ -281,7 +282,7 @@ static int lis3dh_write_reg(const lis3dh_t *dev, const lis3dh_reg_t reg,
  * @return                  0 on success
  * @return                  -1 on error
  */
-static inline int lis3dh_write_bits(const lis3dh_t *dev, const lis3dh_reg_t reg,
+static inline int lis3dh_write_bits(const lis3dh_t *dev, const uint8_t reg,
                                     const uint8_t mask, const uint8_t values)
 {
     uint8_t tmp;

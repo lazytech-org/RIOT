@@ -8,10 +8,11 @@
 
 /**
  * @ingroup     cpu_saml21
+ * @ingroup     drivers_periph_rtc
  * @{
  * @file
  * @brief       Low-level RTC driver implementation
- * @author      Baptiste Clenet <baptiste.clenet@xsoen.com>
+ * @author      Baptiste Clenet <bapclenet@gmail.com>
  * @autor       ported to SAML21 by FWX <FWX@dialine.fr>
  * @}
  */
@@ -21,8 +22,12 @@
 #include "periph/rtc.h"
 #include "periph_conf.h"
 
-/* guard file in case no RTC device was specified */
-#if RTC_NUMOF
+/* SAML21 rev B needs an extra bit, which in rev A defaults to 1, but isn't
+ * visible. Thus define it here. */
+#ifndef RTC_MODE2_CTRLA_CLOCKSYNC
+#define RTC_MODE2_CTRLA_CLOCKSYNC_Pos   15
+#define RTC_MODE2_CTRLA_CLOCKSYNC       (0x1ul << RTC_MODE2_CTRLA_CLOCKSYNC_Pos)
+#endif
 
 typedef struct {
     rtc_alarm_cb_t cb;        /**< callback called from RTC interrupt */
@@ -99,9 +104,7 @@ void rtc_init(void)
 
     /* RTC config with RTC_MODE2_CTRL_CLKREP = 0 (24h) */
     RTC->MODE2.CTRLA.reg = RTC_MODE2_CTRLA_PRESCALER_DIV1024 |  /* CLK_RTC_CNT = 1KHz / 1024 -> 1Hz */
-#if (SAML21XXXB) || (SAMR30)
                            RTC_MODE2_CTRLA_CLOCKSYNC         |  /* Clock Read Synchronization Enable */
-#endif
                            RTC_MODE2_CTRLA_MODE_CLOCK;          /* Mode 2: Clock/Calendar */
 
     /* Clear interrupt flags */
@@ -233,5 +236,3 @@ void isr_rtc(void)
     }
     cortexm_isr_end();
 }
-
-#endif /* RTC_NUMOF */

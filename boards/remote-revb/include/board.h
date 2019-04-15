@@ -8,15 +8,15 @@
  */
 
 /**
- * @ingroup     boards_remote
- * @brief       Support for the RE-Mote board Revision B
+ * @ingroup     boards_remote-revb
  * @{
  *
  * @file
  * @brief       Board specific definitions for the RE-Mote board Revision B
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
- *              Antonio Lignan <alinan@zolertia.com>
+ * @author      Antonio Lignan <alinan@zolertia.com>
+ * @author      Sebastian Meiling <s@mlng.net>
  */
 
 #ifndef BOARD_H
@@ -33,9 +33,9 @@
  * @name LED pin definitions
  * @{
  */
-#define LED0_PIN        GPIO_PD4
-#define LED1_PIN        GPIO_PB7
-#define LED2_PIN        GPIO_PB6
+#define LED0_PIN        GPIO_PIN(3, 4)
+#define LED1_PIN        GPIO_PIN(1, 7)
+#define LED2_PIN        GPIO_PIN(1, 6)
 
 #define LED0_MASK       (1 << 4)
 #define LED1_MASK       (1 << 7)
@@ -59,6 +59,7 @@
  * @{
  */
 #define BTN0_PIN        GPIO_PIN(0, 3)
+#define BTN0_MODE       GPIO_IN_PU
 /** @} */
 
 /**

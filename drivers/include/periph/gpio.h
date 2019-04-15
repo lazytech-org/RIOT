@@ -50,8 +50,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef GPIO_H
-#define GPIO_H
+#ifndef PERIPH_GPIO_H
+#define PERIPH_GPIO_H
 
 #include <limits.h>
 
@@ -125,7 +125,6 @@ typedef void (*gpio_cb_t)(void *arg);
 
 /**
  * @brief   Default interrupt context for GPIO pins
- * @{
  */
 #ifndef HAVE_GPIO_ISR_CTX_T
 typedef struct {
@@ -133,10 +132,13 @@ typedef struct {
     void *arg;              /**< optional argument */
 } gpio_isr_ctx_t;
 #endif
-/** @} */
 
 /**
  * @brief   Initialize the given pin as general purpose input or output
+ *
+ * When configured as output, the pin state after initialization is undefined.
+ * The output pin's state **should** be untouched during the initialization.
+ * This behavior can however **not be guaranteed** by every platform.
  *
  * @param[in] pin       pin to initialize
  * @param[in] mode      mode of the pin, see @c gpio_mode_t
@@ -146,6 +148,7 @@ typedef struct {
  */
 int gpio_init(gpio_t pin, gpio_mode_t mode);
 
+#if defined(MODULE_PERIPH_GPIO_IRQ) || defined(DOXYGEN)
 /**
  * @brief   Initialize a GPIO pin for external interrupt usage
  *
@@ -153,6 +156,9 @@ int gpio_init(gpio_t pin, gpio_mode_t mode);
  * time the defined flank(s) are detected.
  *
  * The interrupt is activated automatically after the initialization.
+ *
+ * @note    You have to add the module `periph_gpio_irq` to your project to
+ *          enable this function
  *
  * @param[in] pin       pin to initialize
  * @param[in] mode      mode of the pin, see @c gpio_mode_t
@@ -169,6 +175,9 @@ int gpio_init_int(gpio_t pin, gpio_mode_t mode, gpio_flank_t flank,
 /**
  * @brief   Enable pin interrupt if configured as interrupt source
  *
+ * @note    You have to add the module `periph_gpio_irq` to your project to
+ *          enable this function
+ *
  * @param[in] pin       the pin to enable the interrupt for
  */
 void gpio_irq_enable(gpio_t pin);
@@ -176,9 +185,14 @@ void gpio_irq_enable(gpio_t pin);
 /**
  * @brief   Disable the pin interrupt if configured as interrupt source
  *
+ * @note    You have to add the module `periph_gpio_irq` to your project to
+ *          enable this function
+ *
  * @param[in] pin       the pin to disable the interrupt for
  */
 void gpio_irq_disable(gpio_t pin);
+
+#endif /* defined(MODULE_PERIPH_GPIO_IRQ) || defined(DOXYGEN) */
 
 /**
  * @brief   Get the current value of the given pin
@@ -223,5 +237,5 @@ void gpio_write(gpio_t pin, int value);
 }
 #endif
 
-#endif /* GPIO_H */
+#endif /* PERIPH_GPIO_H */
 /** @} */

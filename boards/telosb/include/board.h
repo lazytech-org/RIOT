@@ -8,9 +8,7 @@
  */
 
 /**
- * @defgroup    boards_telosb TelosB
- * @ingroup     boards
- * @brief       Support for the TelosB board
+ * @ingroup     boards_telosb
  *
  * <h2>Compontents</h2>
  * \li MSP430
@@ -25,8 +23,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef TELOSB_BOARD_H
-#define TELOSB_BOARD_H
+#ifndef BOARD_H
+#define BOARD_H
 
 #include "cpu.h"
 
@@ -42,30 +40,27 @@ extern "C" {
 #endif
 
 /**
- * @brief   Override default baudrate for STDIO
+ * @name    Override default baudrate for STDIO
  * @{
  */
-#ifndef UART_STDIO_BAUDRATE
-#define UART_STDIO_BAUDRATE         (9600)
+#ifndef STDIO_UART_BAUDRATE
+#define STDIO_UART_BAUDRATE         (9600)
 #endif
 /** @} */
 
 /**
- * @brief   Xtimer configuration
+ * @name    Xtimer configuration
  * @{
  */
-#define XTIMER_DEV                  (0)
-#define XTIMER_CHAN                 (0)
 #define XTIMER_WIDTH                (16)
 #define XTIMER_BACKOFF              (40)
 /** @} */
 
 /**
- * @brief   CPU core configuration
- *
- * @todo    Move this to the periph_conf.h
+ * @name    CPU core configuration
  * @{
  */
+/** @todo   Move this to the periph_conf.h */
 #define MSP430_INITIAL_CPU_SPEED    2457600uL
 #define F_CPU                       MSP430_INITIAL_CPU_SPEED
 #define F_RC_OSCILLATOR             32768
@@ -74,7 +69,7 @@ extern "C" {
 /** @} */
 
 /**
- * @brief   LED pin definitions and handlers
+ * @name    LED pin definitions and handlers
  * @{
  */
 #define LED0_PIN                    GPIO_PIN(4, 0)
@@ -100,21 +95,22 @@ extern "C" {
 /** @} */
 
 /**
- * @brief   Definition of the interface to the CC2420 radio
+ * @name    Definition of the interface to the CC2420 radio
+ * @{
  */
-#define CC2420_PARAMS_BOARD   {.spi        = SPI_DEV(0), \
-                               .spi_clk    = SPI_CLK_1MHZ , \
-                               .pin_cs     = GPIO_PIN(P4, 2), \
-                               .pin_fifo   = GPIO_PIN(P1, 3), \
-                               .pin_fifop  = GPIO_PIN(P1, 0), \
-                               .pin_cca    = GPIO_PIN(P1, 4), \
-                               .pin_sfd    = GPIO_PIN(P4, 1), \
-                               .pin_vrefen = GPIO_PIN(P4, 5), \
-                               .pin_reset  = GPIO_PIN(P4, 6)}
+#define CC2420_PARAM_SPI_CLK        (SPI_CLK_1MHZ)
+#define CC2420_PARAM_CS             GPIO_PIN(P4, 2)
+#define CC2420_PARAM_FIFO           GPIO_PIN(P1, 3)
+#define CC2420_PARAM_FIFOP          GPIO_PIN(P1, 0)
+#define CC2420_PARAM_CCA            GPIO_PIN(P1, 4)
+#define CC2420_PARAM_SFD            GPIO_PIN(P4, 1)
+#define CC2420_PARAM_VREFEN         GPIO_PIN(P4, 5)
+#define CC2420_PARAM_RESET          GPIO_PIN(P4, 6)
+/** @} */
 
 #ifdef __cplusplus
 }
 #endif
 
 /** @} */
-#endif /*  TELOSB_BOARD_H */
+#endif /* BOARD_H */

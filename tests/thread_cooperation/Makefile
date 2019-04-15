@@ -1,13 +1,25 @@
-APPLICATION = thread_cooperation
 include ../Makefile.tests_common
 
-BOARD_INSUFFICIENT_MEMORY := cc2650stk chronos maple-mini msb-430 msb-430h \
-                          mbed_lpc1768 stm32f0discovery pca10000 pca10005 \
-                          yunjia-nrf51822 spark-core airfy-beacon nucleo-f103 \
-                          nucleo-f334 nrf51dongle nrf6310 weio nucleo-f072 \
-                          nucleo-f030 nucleo-f070 microbit calliope-mini \
-                          nucleo32-f042 nucleo32-f303 opencm9-04
+BOARD_INSUFFICIENT_MEMORY := arduino-duemilanove arduino-nano arduino-uno \
+                             chronos msb-430 msb-430h nucleo-f031k6 \
+                             nucleo-f303k8
 
 DISABLE_MODULE += auto_init
+
+ifneq (,$(filter nucleo-f042k6,$(BOARD)))
+  PROBLEM ?= 3
+endif
+ifneq (,$(filter nucleo-f030r8 nucleo-l031k6 nucleo-l053r8 stm32f0discovery,$(BOARD)))
+  PROBLEM ?= 5
+endif
+ifneq (,$(filter nucleo-f334r8,$(BOARD)))
+  PROBLEM ?= 9
+endif
+
+PROBLEM ?= 12
+
+CFLAGS += -DPROBLEM=$(PROBLEM)
+
+TEST_ON_CI_WHITELIST += all
 
 include $(RIOTBASE)/Makefile.include

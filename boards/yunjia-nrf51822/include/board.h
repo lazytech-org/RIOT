@@ -7,9 +7,7 @@
  */
 
 /**
- * @defgroup    boards_yunjia-nrf51822 Yunjia NRF51822
- * @ingroup     boards
- * @brief       Board specific files for the Yunjia NRF51822 board
+ * @ingroup     boards_yunjia-nrf51822
  * @{
  *
  * @file
@@ -21,29 +19,10 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-#include "cpu.h"
+#include "board_common.h"
 
 #ifdef __cplusplus
-extern "C" {
-#endif
-
-/**
- * @brief   Xtimer configuration
- * @{
- */
-#define XTIMER_DEV                  (0)
-#define XTIMER_CHAN                 (0)
-#define XTIMER_WIDTH                (24)
-#define XTIMER_BACKOFF              (40)
-/** @} */
-
-/**
- * @brief Initialize board specific hardware, including clock, LEDs and std-IO
- */
-void board_init(void);
-
-#ifdef __cplusplus
-}
+extern "C" {}
 #endif
 
 #endif /* BOARD_H */

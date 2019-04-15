@@ -39,7 +39,7 @@ simplest way to compile and link an application with RIOT, is to set up a
 Makefile providing at least the following variables:
 
  * `APPLICATION`: should contain the (unique) name of your application
- * `BOARD`: specifies the platform the application should be build for by
+ * `BOARD`: specifies the platform the application should be built for by
    default
  * `RIOTBASE`: specifies the path to your copy of the RIOT repository (note,
    that you may want to use `$(CURDIR)` here, to give a relative path)
@@ -71,7 +71,7 @@ terminal tools for the specified platform. These targets use the variable
 the targets `flash` and `term` are mandatory for the native port.
 
 For the native port, `PORT` has a special meaning: it is used to identify the
-tap interface if the `netdev2_tap` module is used. The target `debug` can be
+tap interface if the `netdev_tap` module is used. The target `debug` can be
 used to invoke a debugger on some platforms. For the native port the additional
 targets such as `all-valgrind` and `valgrind` exist. Refer to
 `cpu/native/README.md` for additional information

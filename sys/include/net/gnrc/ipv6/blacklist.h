@@ -19,8 +19,8 @@
  * @author  Martine Lenders <mlenders@inf.fu-berlin.de>
  * @author  Martin Landsmann <martin.landsmann@haw-hamburg.de>
  */
-#ifndef GNRC_IPV6_BLACKLIST_H
-#define GNRC_IPV6_BLACKLIST_H
+#ifndef NET_GNRC_IPV6_BLACKLIST_H
+#define NET_GNRC_IPV6_BLACKLIST_H
 
 #include <stdbool.h>
 
@@ -31,11 +31,18 @@ extern "C" {
 #endif
 
 /**
+ * @defgroup    net_gnrc_ipv6_blacklist_conf GNRC IPv6 address blacklisting compile configurations
+ * @ingroup     net_gnrc_ipv6_blacklist
+ * @ingroup     config
+ * @{
+ */
+/**
  * Maximum size of the blacklist.
  */
 #ifndef GNRC_IPV6_BLACKLIST_SIZE
 #define GNRC_IPV6_BLACKLIST_SIZE    (8)
 #endif
+/** @} */
 
 /**
  * @brief   Adds an IPv6 address to the blacklist.
@@ -75,5 +82,5 @@ void gnrc_ipv6_blacklist_print(void);
 }
 #endif
 
-#endif /* GNRC_IPV6_BLACKLIST_H */
+#endif /* NET_GNRC_IPV6_BLACKLIST_H */
 /** @} */

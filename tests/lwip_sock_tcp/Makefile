@@ -1,14 +1,16 @@
-APPLICATION = lwip_sock_tcp
-
 include ../Makefile.tests_common
 
 # lwIP's memory management doesn't seem to work on non 32-bit platforms at the
 # moment.
-BOARD_BLACKLIST := arduino-uno arduino-duemilanove arduino-mega2560 chronos \
-                   msb-430 msb-430h telosb waspmote-pro wsn430-v1_3b \
-                   wsn430-v1_4 z1
-BOARD_INSUFFICIENT_MEMORY = nucleo-f030 nucleo32-f042 nucleo-f334 \
-                            stm32f0discovery weio
+BOARD_BLACKLIST := arduino-duemilanove arduino-mega2560 arduino-nano \
+                   arduino-uno chronos esp8266-esp-12x esp8266-olimex-mod \
+                   esp8266-sparkfun-thing jiminy-mega256rfr2 mega-xplained \
+                   msb-430 msb-430h telosb waspmote-pro \
+                   wsn430-v1_3b wsn430-v1_4 z1
+BOARD_INSUFFICIENT_MEMORY = blackpill bluepill nucleo-f031k6 nucleo-f042k6 \
+                            nucleo-l031k6 nucleo-f030r8 nucleo-f302r8 \
+                            nucleo-f303k8 nucleo-f334r8 nucleo-l053r8 \
+                            saml10-xpro saml11-xpro stm32f0discovery
 
 LWIP_IPV4 ?= 0
 
@@ -28,15 +30,14 @@ ifneq (0, $(LWIP_IPV6))
 endif
 
 USEMODULE += inet_csum
-USEMODULE += lwip_ethernet lwip_netdev2
+USEMODULE += lwip_netdev
 USEMODULE += lwip_sock_tcp
-USEMODULE += netdev2_eth
-USEMODULE += netdev2_test
+USEMODULE += netdev_eth
+USEMODULE += netdev_test
 USEMODULE += ps
 
 DISABLE_MODULE += auto_init
 
-CFLAGS += -DDEVELHELP
 CFLAGS += -DSO_REUSE
 CFLAGS += -DLWIP_SO_RCVTIMEO
 CFLAGS += -DLWIP_SOCK_TCP_ACCEPT_TIMEOUT=500
@@ -44,6 +45,3 @@ CFLAGS += -DLWIP_NETIF_LOOPBACK=1
 CFLAGS += -DLWIP_HAVE_LOOPIF=1
 
 include $(RIOTBASE)/Makefile.include
-
-test:
-	./tests/01-run.py

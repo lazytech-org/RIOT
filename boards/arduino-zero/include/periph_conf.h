@@ -107,20 +107,24 @@ extern "C" {
  */
 static const uart_conf_t uart_config[] = {
     {
-        .dev    = &SERCOM5->USART,
-        .rx_pin = GPIO_PIN(PB,23),
-        .tx_pin = GPIO_PIN(PB,22),
-        .mux    = GPIO_MUX_D,
-        .rx_pad = UART_PAD_RX_3,
-        .tx_pad = UART_PAD_TX_2
+        .dev      = &SERCOM5->USART,
+        .rx_pin   = GPIO_PIN(PB,23),
+        .tx_pin   = GPIO_PIN(PB,22),
+        .mux      = GPIO_MUX_D,
+        .rx_pad   = UART_PAD_RX_3,
+        .tx_pad   = UART_PAD_TX_2,
+        .flags    = UART_FLAG_NONE,
+        .gclk_src = GCLK_CLKCTRL_GEN_GCLK0
     },
     {
-        .dev    = &SERCOM0->USART,
-        .rx_pin = GPIO_PIN(PA,11),
-        .tx_pin = GPIO_PIN(PA,10),
-        .mux    = GPIO_MUX_C,
-        .rx_pad = UART_PAD_RX_3,
-        .tx_pad = UART_PAD_TX_2
+        .dev      = &SERCOM0->USART,
+        .rx_pin   = GPIO_PIN(PA,11),
+        .tx_pin   = GPIO_PIN(PA,10),
+        .mux      = GPIO_MUX_C,
+        .rx_pad   = UART_PAD_RX_3,
+        .tx_pad   = UART_PAD_TX_2,
+        .flags    = UART_FLAG_NONE,
+        .gclk_src = GCLK_CLKCTRL_GEN_GCLK0
     }
 };
 
@@ -168,15 +172,7 @@ static const pwm_conf_t pwm_config[] = {
  * @name ADC configuration
  * @{
  */
-#define ADC_CONFIG {            \
-    { GPIO_PIN(PA, 2), 0, 0  }, \
-    { GPIO_PIN(PB, 8), 0, 2  }, \
-    { GPIO_PIN(PB, 9), 0, 3  }, \
-    { GPIO_PIN(PA, 4), 0, 4  }, \
-    { GPIO_PIN(PA, 5), 0, 5  }, \
-    { GPIO_PIN(PB, 2), 0, 10 }}
-
-#define ADC_NUMOF           (6)
+#define ADC_NUMOF           (0)
 /** @} */
 
 /**
@@ -204,23 +200,21 @@ static const spi_conf_t spi_config[] = {
  * @name I2C configuration
  * @{
  */
-#define I2C_NUMOF          (1U)
-#define I2C_0_EN            1
-#define I2C_1_EN            0
-#define I2C_2_EN            0
-#define I2C_3_EN            0
-#define I2C_IRQ_PRIO        1
 
-#define I2C_0_DEV           SERCOM3->I2CM
-#define I2C_0_IRQ           SERCOM3_IRQn
-#define I2C_0_ISR           isr_sercom3
-/* I2C 0 GCLK */
-#define I2C_0_GCLK_ID       SERCOM3_GCLK_ID_CORE
-#define I2C_0_GCLK_ID_SLOW  SERCOM3_GCLK_ID_SLOW
-/* I2C 0 pin configuration */
-#define I2C_0_SDA           GPIO_PIN(PA, 22)
-#define I2C_0_SCL           GPIO_PIN(PA, 23)
-#define I2C_0_MUX           GPIO_MUX_C
+static const i2c_conf_t i2c_config[] = {
+    {
+        .dev      = &(SERCOM3->I2CM),
+        .speed    = I2C_SPEED_FAST,
+        .scl_pin  = GPIO_PIN(PA, 23),
+        .sda_pin  = GPIO_PIN(PA, 22),
+        .mux      = GPIO_MUX_C,
+        .gclk_src = GCLK_CLKCTRL_GEN_GCLK0,
+        .flags    = I2C_FLAG_NONE
+    }
+};
+
+#define I2C_NUMOF           (sizeof(i2c_config) / sizeof(i2c_config[0]))
+/** @} */
 
 /**
  * @name RTC configuration
@@ -242,6 +236,20 @@ static const spi_conf_t spi_config[] = {
 #define RTT_MAX_VALUE       (0xffffffff)
 #define RTT_FREQUENCY       (32768U)    /* in Hz. For changes see `rtt.c` */
 #define RTT_RUNSTDBY        (1)         /* Keep RTT running in sleep states */
+/** @} */
+
+/**
+ * @name USB peripheral configuration
+ * @{
+ */
+static const sam0_common_usb_config_t sam_usbdev_config[] = {
+    {
+        .dm     = GPIO_PIN(PA, 24),
+        .dp     = GPIO_PIN(PA, 25),
+        .d_mux  = GPIO_MUX_G,
+        .device = &USB->DEVICE,
+    }
+};
 /** @} */
 
 #ifdef __cplusplus

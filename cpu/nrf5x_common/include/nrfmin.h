@@ -72,7 +72,7 @@
 #ifndef NRFMIN_H
 #define NRFMIN_H
 
-#include "net/netdev2.h"
+#include "net/netdev.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -134,14 +134,14 @@ typedef union {
 } nrfmin_pkt_t;
 
 /**
- * @brief   Export the netdev2 device descriptor
+ * @brief   Export the netdev device descriptor
  */
-extern netdev2_t nrfmin_dev;
+extern netdev_t nrfmin_dev;
 
 /**
  * @brief   Reference to the netdev driver interface
  */
-extern const netdev2_driver_t nrfmin_netdev;
+extern const netdev_driver_t nrfmin_netdev;
 
 /**
  * @brief   Setup the device driver's data structures
@@ -161,16 +161,6 @@ uint16_t nrfmin_get_addr(void);
  * @param[in] addr      address to set
  */
 void nrfmin_set_addr(uint16_t addr);
-
-/**
- * @brief   Get a pseudo 64-bit long address (needed by IPv6 and 6LoWPAN)
- *
- * As we do not support 64-bit addresses, we just make one up, for this we
- * simply return 4 times concatenated the 16-bit address.
- *
- * @param[out] addr     64-bit pseudo long address, as array of 4 * 16-bit
- */
-void nrfmin_get_pseudo_long_addr(uint16_t *addr);
 
 /**
  * @brief   Get the IID build from the 16-bit node address

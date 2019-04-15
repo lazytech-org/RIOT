@@ -7,7 +7,7 @@
  */
 
 /**
- * @defgroup    drivers_cc2420 CC2420 driver
+ * @defgroup    drivers_cc2420 CC2420 radio driver
  * @ingroup     drivers_netdev
  * @{
  *
@@ -26,8 +26,8 @@
 #include "periph/spi.h"
 #include "periph/gpio.h"
 
-#include "net/netdev2.h"
-#include "net/netdev2/ieee802154.h"
+#include "net/netdev.h"
+#include "net/netdev/ieee802154.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,12 +39,7 @@ extern "C" {
 #define CC2420_PKT_MAXLEN       (IEEE802154_FRAME_LEN_MAX)
 
 /**
- * @brief   PAN ID configuration
- */
-#define CC2420_PANID_DEFAULT    (IEEE802154_DEFAULT_PANID)
-
-/**
-  * @brief   Channel configuration
+  * @name    Channel configuration
   * @{
   */
 #define CC2420_CHAN_MIN         (IEEE802154_CHANNEL_MIN)
@@ -53,13 +48,18 @@ extern "C" {
 /** @} */
 
 /**
- * @brief   Default TX power configuration [in dBm]
+ * @name    Default TX power configuration [in dBm]
  * @{
  */
 #define CC2420_TXPOWER_MIN      (-25)
 #define CC2420_TXPOWER_MAX      (0)
 #define CC2420_TXPOWER_DEFAULT  (IEEE802154_DEFAULT_TXPOWER)
 /** @} */
+
+/**
+ * @brief   RSSI offset
+ */
+#define CC2420_RSSI_OFFSET      (-45)
 
 /**
  * @brief   A couple of return values used in this driver
@@ -70,7 +70,6 @@ enum {
 
 /**
  * @brief   Struct holding all parameters needed for device initialization
- * @{
  */
 typedef struct cc2420_params {
     spi_t spi;              /**< SPI bus the device is connected to */
@@ -83,22 +82,19 @@ typedef struct cc2420_params {
     gpio_t pin_vrefen;      /**< pin connected to the Vref enable pin */
     gpio_t pin_reset;       /**< pin connected to the reset pin */
 } cc2420_params_t;
-/** @} */
 
 /**
  * @brief   Device descriptor for CC2420 radio devices
- * @{
  */
 typedef struct {
     /* netdev fields */
-    netdev2_ieee802154_t netdev;  /**< netdev2 parent struct */
+    netdev_ieee802154_t netdev;   /**< netdev parent struct */
     /* device specific fields */
     cc2420_params_t params;       /**< hardware interface configuration */
     /* device state fields */
     uint8_t state;                /**< current state of the radio */
     uint16_t options;             /**< state of used options */
 } cc2420_t;
-/** @} */
 
 /**
  * @brief   Setup the device descriptor for the given device
@@ -154,7 +150,7 @@ void cc2420_get_addr_short(cc2420_t *dev, uint8_t *addr);
  * @param[in] dev           device to write to
  * @param[in] addr          (2-byte) short address to set
  */
-void cc2420_set_addr_short(cc2420_t *dev, uint8_t *addr);
+void cc2420_set_addr_short(cc2420_t *dev, const uint8_t *addr);
 
 /**
  * @brief   Get the configured long address of the given device
@@ -172,7 +168,7 @@ void cc2420_get_addr_long(cc2420_t *dev, uint8_t *addr_long);
  * @param[in] dev           device to write to
  * @param[in] addr_long     (8-byte) long address to set
  */
-void cc2420_set_addr_long(cc2420_t *dev, uint8_t *addr_long);
+void cc2420_set_addr_long(cc2420_t *dev, const uint8_t *addr_long);
 
 /**
  * @brief   Get the configured PAN ID of the given device
@@ -262,13 +258,12 @@ netopt_state_t cc2420_get_state(cc2420_t *dev);
  * @note This function ignores the PRELOADING option
  *
  * @param[in] dev           device to use for sending
- * @param[in] data          data to send (must include IEEE802.15.4 header)
- * @param[in] count         length of @p data
+ * @param[in] iolist        data to send (must include IEEE802.15.4 header)
  *
  * @return                  number of bytes that were actually send
  * @return                  0 on error
  */
-size_t cc2420_send(cc2420_t *dev, const struct iovec *data, unsigned count);
+size_t cc2420_send(cc2420_t *dev, const iolist_t *iolist);
 
 /**
  * @brief   Prepare for sending of data
@@ -277,10 +272,9 @@ size_t cc2420_send(cc2420_t *dev, const struct iovec *data, unsigned count);
  * data is possible after it was called.
  *
  * @param[in] dev           device to prepare for sending
- * @param[in] data          data to prepare (must include IEEE802.15.4 header)
- * @param[in] count         length of @p data
+ * @param[in] iolist        data to prepare (must include IEEE802.15.4 header)
  */
-size_t cc2420_tx_prepare(cc2420_t *dev, const struct iovec *data, unsigned count);
+size_t cc2420_tx_prepare(cc2420_t *dev, const iolist_t *iolist);
 
 /**
  * @brief   Trigger sending of data previously loaded into transmit buffer

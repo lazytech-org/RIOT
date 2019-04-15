@@ -8,9 +8,7 @@
  */
 
 /**
- * @defgroup    board_frdm-k64f Freescale FRDM-K64F Board
- * @ingroup     boards
- * @brief       Board specific implementations for the FRDM-K64F
+ * @ingroup     boards_frdm-k64f
  * @{
  *
  * @file
@@ -31,7 +29,7 @@ extern "C"
 #endif
 
 /**
- * @brief   LED pin definitions and handlers
+ * @name    LED pin definitions and handlers
  * @{
  */
 #define LED0_PIN            GPIO_PIN(PORT_B, 22)
@@ -56,7 +54,29 @@ extern "C"
 /** @} */
 
 /**
- * @brief Initialize board specific hardware, including clock, LEDs and std-IO
+ * @name    Button pin definitions
+ * @{
+ */
+/* SW2, SW3 will short these pins to ground when pushed. PTA4 has an external
+ * pull-up resistor to VDD, but there is no external pull resistor on PTC6 */
+/* BTN0 is mapped to SW2 */
+#define BTN0_PIN            GPIO_PIN(PORT_C,  6)
+#define BTN0_MODE           GPIO_IN_PU
+/* BTN1 is mapped to SW3 */
+#define BTN1_PIN            GPIO_PIN(PORT_A,  4)
+#define BTN1_MODE           GPIO_IN_PU
+/** @} */
+
+/**
+ * @name    FXOS8700CQ 3-axis accelerometer and magnetometer bus configuration
+ * @{
+ */
+#define FXOS8700_PARAM_I2C          I2C_DEV(0)
+#define FXOS8700_PARAM_ADDR         0x1E
+/** @} */
+
+/**
+ * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
  */
 void board_init(void);
 
@@ -64,5 +84,5 @@ void board_init(void);
 }
 #endif
 
-#endif /** BOARD_H */
+#endif /* BOARD_H */
 /** @} */

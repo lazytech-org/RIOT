@@ -8,7 +8,7 @@
  */
 
 /**
- * @ingroup native_cpu
+ * @ingroup cpu_native
  * @{
  *
  * @file
@@ -52,9 +52,9 @@
 #include "cpu.h"
 #include "cpu_conf.h"
 
-#ifdef MODULE_NETDEV2_TAP
-#include "netdev2_tap.h"
-extern netdev2_tap_t netdev2_tap;
+#ifdef MODULE_NETDEV_TAP
+#include "netdev_tap.h"
+extern netdev_tap_t netdev_tap;
 #endif
 
 #include "native_internal.h"
@@ -97,7 +97,7 @@ void thread_print_stack(void)
 }
 
 /* This function calculates the ISR_usage */
-int thread_arch_isr_stack_usage(void)
+int thread_isr_stack_usage(void)
 {
     /* TODO */
     return -1;
@@ -208,6 +208,8 @@ void isr_thread_yield(void)
 
 void thread_yield_higher(void)
 {
+    sched_context_switch_request = 1;
+
     if (_native_in_isr == 0) {
         ucontext_t *ctx = (ucontext_t *)(sched_active_thread->sp);
         _native_in_isr = 1;
@@ -223,9 +225,6 @@ void thread_yield_higher(void)
             err(EXIT_FAILURE, "thread_yield_higher: swapcontext");
         }
         irq_enable();
-    }
-    else {
-        isr_thread_yield();
     }
 }
 

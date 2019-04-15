@@ -8,6 +8,7 @@
 
 /**
  * @ingroup     cpu_saml21
+ * @ingroup     drivers_periph_pm
  * @{
  *
  * @file
@@ -37,9 +38,14 @@ void pm_set(unsigned mode)
                 DEBUG("pm_set(): setting STANDBY mode.\n");
                 _mode = PM_SLEEPCFG_SLEEPMODE_STANDBY;
                 break;
+            default: /* Falls through */
             case 2:
                 DEBUG("pm_set(): setting IDLE mode.\n");
+#ifdef CPU_MODEL_SAMR30G18A
+                _mode = PM_SLEEPCFG_SLEEPMODE_IDLE;
+#else
                 _mode = PM_SLEEPCFG_SLEEPMODE_IDLE2;
+#endif
                 break;
         }
 
@@ -49,8 +55,5 @@ void pm_set(unsigned mode)
         while (PM->SLEEPCFG.bit.SLEEPMODE != _mode) {}
     }
 
-    /* Executes a device DSB (Data Synchronization Barrier) */
-    __DSB();
-    /* Enter standby mode */
-    __WFI();
+    cortexm_sleep(0);
 }

@@ -20,17 +20,16 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef RTT_H
-#define RTT_H
+#ifndef PERIPH_RTT_H
+#define PERIPH_RTT_H
+
+#include <stdint.h>
 
 #include "periph_conf.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* guard file in case no RTT device was specified */
-#if RTT_NUMOF
 
 #ifndef RTT_FREQUENCY
 #warning "RTT_FREQUENCY undefined. Set RTT_FREQUENCY to the number of ticks" \
@@ -166,11 +165,9 @@ void rtt_poweron(void);
  */
 void rtt_poweroff(void);
 
-#endif /* RTT_NUMOF */
-
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* RTT_H */
+#endif /* PERIPH_RTT_H */
 /** @} */

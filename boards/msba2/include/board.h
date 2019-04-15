@@ -7,9 +7,7 @@
  */
 
 /**
- * @defgroup    boards_msba2 MSB-A2
- * @ingroup     boards
- * @brief       Support for the ScatterWeb MSB-A2 board
+ * @ingroup     boards_msba2
  * @{
  *
  * @file
@@ -29,7 +27,7 @@ extern "C" {
 #endif
 
 /**
- * @brief   LED pin definitions and handlers
+ * @name    LED pin definitions and handlers
  * @{
  */
 #define LED0_PIN            GPIO_PIN(2, 25)
@@ -48,7 +46,7 @@ extern "C" {
 /** @} */
 
 /**
- * @name xtimer tuning values
+ * @name    xtimer tuning values
  * @{
  */
 #define XTIMER_OVERHEAD     7
@@ -56,7 +54,7 @@ extern "C" {
 /** @} */
 
 /**
- * @brief initialize the board's clock system
+ * @brief   initialize the board's clock system
  */
 void init_clks1(void);
 
